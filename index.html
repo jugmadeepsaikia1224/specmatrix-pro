@@ -1,0 +1,2829 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpecMatrix Pro — Cloud DB & AI Laptop Telemetry Engine</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbars and smooth transitions */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.7);
+    }
+    .glass-card {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .score-bar-fill {
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @keyframes pulseSubtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.75; }
+    }
+    .animate-pulse-subtle {
+      animation: pulseSubtle 2.5s infinite ease-in-out;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen font-sans selection:bg-indigo-500 selection:text-white transition-colors duration-200">
+
+  <!-- Non-Blocking Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-950/90 glass-card">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+      <!-- Brand Logo & Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+          <i class="fa-solid fa-microchip text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500 dark:from-indigo-400 dark:via-purple-300 dark:to-cyan-400 bg-clip-text text-transparent">
+              SpecMatrix Pro
+            </h1>
+            <span class="hidden xl:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+              v2.5 Cloud + AI Telemetry
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 hidden md:block">
+            25-Point Hardware Benchmarking • Live Firestore DB • Gemini API Spec Ingestion
+          </p>
+        </div>
+      </div>
+
+      <!-- Right Controls & Cloud DB Status Badge -->
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <!-- Live Cloud DB Status Pill -->
+        <button onclick="openBackendModal('firestore')" id="cloudDbStatusBadge" class="px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center gap-2 transition hover:border-indigo-500/50" title="Click to inspect Cloud DB & Backend Architecture">
+          <span id="cloudStatusDot" class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+          <span id="cloudStatusText" class="hidden sm:inline">Connecting DB...</span>
+          <span id="cloudDocCountBadge" class="px-1.5 py-0.2 rounded bg-slate-900/20 dark:bg-white/10 text-[10px]">0 docs</span>
+        </button>
+
+        <!-- Currency Switcher -->
+        <button id="currencyToggleBtn" onclick="toggleCurrency()" class="px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 hover:border-indigo-500/50 transition flex items-center gap-1.5" title="Switch Currency">
+          <i class="fa-solid fa-coins text-amber-500"></i>
+          <span id="currencyLabel">INR (₹)</span>
+        </button>
+
+        <!-- Custom / Edit Laptop Modal Button -->
+        <button onclick="openCustomModal()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-plus"></i>
+          <span class="hidden sm:inline">Custom Spec</span>
+        </button>
+
+        <!-- Backend API & REST Architecture Modal Button -->
+        <button onclick="openBackendModal('json')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/20 transition flex items-center gap-1.5" title="Inspect JSON Payload, Firestore Metadata & Python FastAPI Code">
+          <i class="fa-solid fa-server"></i>
+          <span class="hidden lg:inline">Backend & API</span>
+        </button>
+
+        <!-- PM Case Study / PRD Modal Button -->
+        <button onclick="openPrdModal()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition flex items-center gap-1.5" title="Product Requirements Document">
+          <i class="fa-solid fa-compass-drafting"></i>
+          <span class="hidden xl:inline">PRD</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button onclick="toggleTheme()" class="w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-indigo-500 transition" title="Toggle Dark/Light Theme">
+          <i id="themeIcon" class="fa-solid fa-sun"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- 0. LIVE GEMINI API LAPTOP SPECIFICATION INGESTION ENGINE BANNER -->
+    <section class="rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-slate-900/90 to-purple-950/40 text-white p-4 sm:p-6 shadow-xl relative overflow-hidden">
+      <div class="absolute -right-12 -top-12 w-56 h-56 rounded-full bg-indigo-500/10 blur-2xl pointer-events-none"></div>
+      <div class="relative z-10 space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 flex items-center gap-1.5">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                Live Gemini API Spec Ingestion Engine
+              </span>
+              <span class="text-xs font-mono text-emerald-400 flex items-center gap-1">
+                <i class="fa-solid fa-database text-[10px]"></i> Auto-Saves to Cloud Firestore
+              </span>
+            </div>
+            <h2 class="text-base sm:text-lg font-extrabold mt-1 text-white">
+              Enter ANY Laptop Model in the World — Auto-Fetch All 25 Specs & 0–100 Scores via AI
+            </h2>
+          </div>
+
+          <!-- Quick AI Ingestion Suggestions -->
+          <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span class="text-slate-400 font-medium">Try AI Fetch:</span>
+            <button onclick="prefillAndFetchAi('ASUS ROG Strix Scar 16 (2024)')" class="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-indigo-200 transition font-mono">ROG Strix Scar 16</button>
+            <button onclick="prefillAndFetchAi('Apple MacBook Air 15 (M3, 2024)')" class="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-indigo-200 transition font-mono">MacBook Air M3</button>
+            <button onclick="prefillAndFetchAi('Lenovo LOQ 15IRX9 (RTX 4060)')" class="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-indigo-200 transition font-mono">Lenovo LOQ 15</button>
+            <button onclick="prefillAndFetchAi('Razer Blade 16 (2024 OLED)')" class="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-indigo-200 transition font-mono">Razer Blade 16</button>
+          </div>
+        </div>
+
+        <!-- AI Ingestion Form Bar -->
+        <form onsubmit="handleAiIngestionSubmit(event)" class="flex flex-col sm:flex-row gap-3">
+          <div class="relative flex-1">
+            <i class="fa-solid fa-robot absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400"></i>
+            <input
+              id="aiLaptopQueryInput"
+              type="text"
+              required
+              placeholder="Enter ANY Laptop Model (e.g., ASUS ROG Strix Scar 16, MacBook Air M3, Lenovo LOQ 15, HP Spectre x360)..."
+              class="w-full pl-11 pr-4 py-3 rounded-xl text-sm bg-slate-950/90 border border-indigo-500/40 text-white placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30"
+            />
+          </div>
+          <button
+            id="aiFetchSubmitBtn"
+            type="submit"
+            class="px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 shrink-0"
+          >
+            <i id="aiFetchBtnIcon" class="fa-solid fa-bolt"></i>
+            <span id="aiFetchBtnText">Fetch 25 Specs via API & Save to DB</span>
+          </button>
+        </form>
+
+        <!-- Live Ingestion Progress Bar (Hidden when idle) -->
+        <div id="aiIngestionProgressBox" class="hidden p-3.5 rounded-xl bg-slate-950/80 border border-indigo-500/30 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span id="aiProgressStatusText" class="font-mono text-indigo-300 flex items-center gap-2">
+              <i class="fa-solid fa-circle-notch fa-spin text-cyan-400"></i>
+              Querying Gemini API for structured 25-parameter telemetry...
+            </span>
+            <span id="aiProgressPct" class="font-mono font-bold text-cyan-400">35%</span>
+          </div>
+          <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+            <div id="aiProgressBar" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 transition-all duration-500" style="width: 35%"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1. Control Deck: Mode Switcher, Search, Active Slots & Cloud Snapshots -->
+    <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 sm:p-6 shadow-sm space-y-5">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-indigo-500"></i>
+            Cloud Database Catalog & Comparison Slots
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Select laptops from the live Firestore collection, or save a Head-to-Head Comparison Snapshot to share across sessions.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- Save Comparison Snapshot to Cloud DB -->
+          <button onclick="saveComparisonSnapshotToCloud()" class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/20 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Save Comparison Snapshot</span>
+          </button>
+
+          <!-- Mode Selector Pills -->
+          <div class="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60">
+            <button id="modeSingleBtn" onclick="setViewMode('single')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-magnifying-glass-chart"></i>
+              Single
+            </button>
+            <button id="modeCompare2Btn" onclick="setViewMode('compare2')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-scale-balanced"></i>
+              2 Laptops
+            </button>
+            <button id="modeCompare3Btn" onclick="setViewMode('compare3')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-chart-column"></i>
+              3 Laptops
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Bar + Active Slot Selectors -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+        <!-- Global Autocomplete Search Box -->
+        <div class="lg:col-span-5 relative">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            Filter Database or Trigger Instant AI Lookup
+          </label>
+          <div class="relative">
+            <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input
+              id="modelSearchInput"
+              type="text"
+              placeholder="Search DB or type new laptop model for AI fetch..."
+              oninput="handleModelSearch(this.value)"
+              onfocus="handleModelSearch(this.value)"
+              class="w-full pl-10 pr-9 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition"
+            />
+            <button id="clearSearchBtn" onclick="clearModelSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+              <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+          </div>
+          <!-- Autocomplete Dropdown -->
+          <div id="searchDropdown" class="hidden absolute left-0 right-0 mt-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl z-30 max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+          </div>
+        </div>
+
+        <!-- Slot Dropdown Selectors -->
+        <div id="slotSelectorsContainer" class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <!-- Dynamically populated by JS -->
+        </div>
+      </div>
+
+      <!-- Quick-Select Database Chips -->
+      <div class="pt-1">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            Live Cloud Database Models (Click to Load into Active Slot):
+          </span>
+          <span id="activeSlotIndicator" class="text-[11px] font-mono text-indigo-500 dark:text-indigo-400">
+            Target: Slot #1
+          </span>
+        </div>
+        <div id="quickChipsContainer" class="flex flex-wrap gap-2">
+          <!-- Dynamically populated chips -->
+        </div>
+      </div>
+
+      <!-- Saved Cloud Comparison Snapshots Bar -->
+      <div id="cloudSnapshotsContainer" class="hidden pt-3 border-t border-slate-100 dark:border-slate-800/80">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-bookmark"></i> Saved Cloud Head-to-Head Snapshots (Firestore Realtime):
+          </span>
+        </div>
+        <div id="cloudSnapshotsList" class="flex flex-wrap gap-2"></div>
+      </div>
+    </section>
+
+    <!-- 2. Persona / Use-Case Weighting Engine -->
+    <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 sm:p-6 shadow-sm">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+              <i class="fa-solid fa-brain text-purple-500"></i>
+              Dynamic Persona Scoring Engine
+            </h2>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20">
+              Weighted Multi-Criteria Decision Analysis
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            A gaming laptop and an ultrabook shouldn't be judged identically. Select a user persona to dynamically re-weight all 25 specification categories.
+          </p>
+        </div>
+
+        <!-- Toggle Weight Matrix Details -->
+        <button onclick="toggleWeightSliders()" class="self-start md:self-auto px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 hover:border-indigo-500 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-Sliders"></i>
+          <span id="weightToggleText">Customize Pillar Weights</span>
+          <i id="weightToggleChevron" class="fa-solid fa-chevron-down text-[10px]"></i>
+        </button>
+      </div>
+
+      <!-- Persona Preset Buttons -->
+      <div id="personaButtonsContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Expandable Custom Pillar Weight Sliders -->
+      <div id="customWeightsPanel" class="hidden mt-5 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">
+            Fine-Tune Category Pillar Multipliers (Automatically normalizes to 100% total score):
+          </span>
+          <button onclick="selectPersona('balanced')" class="text-xs text-indigo-500 hover:underline font-medium">
+            Reset to Balanced
+          </button>
+        </div>
+        <div id="weightSlidersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Visual Laptop Showcase & Overall Score Cards -->
+    <section id="laptopHeroCardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- Dynamically rendered Laptop Hero Cards with SVG illustrations, overall score, Best For badges, and category wins count -->
+    </section>
+
+    <!-- 4. Executive Telemetry Summary: Radar Chart + Category Winner Matrix -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Left: 6-Axis SVG Radar / Spider Chart -->
+      <div class="lg:col-span-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-5 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-base font-bold flex items-center gap-2">
+              <i class="fa-solid fa-compass text-cyan-500"></i>
+              6-Pillar Telemetry Radar
+            </h3>
+            <span class="text-[11px] font-mono text-slate-400">0–100 Scale</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+            Aggregated geometric footprint across the 25 individual laptop parameters.
+          </p>
+        </div>
+
+        <!-- SVG Radar Container -->
+        <div id="radarChartContainer" class="w-full flex items-center justify-center my-auto py-2">
+          <!-- Rendered by JS -->
+        </div>
+
+        <!-- Legend -->
+        <div id="radarLegendContainer" class="flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Right: Category Winner Trophy Board & Key Insights -->
+      <div class="lg:col-span-7 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-5 shadow-sm flex flex-col justify-between space-y-4">
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <h3 class="text-base font-bold flex items-center gap-2">
+              <i class="fa-solid fa-trophy text-amber-500"></i>
+              Category Dominance & Head-to-Head Verdict
+            </h3>
+            <span id="verdictPersonaBadge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+              Persona: Balanced
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Instant breakdown of which laptop leads in specific engineering, display, portability, and ownership dimensions.
+          </p>
+        </div>
+
+        <!-- Dynamic Executive Summary Banner -->
+        <div id="executiveVerdictBox" class="p-4 rounded-xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-cyan-500/10 border border-indigo-500/20 text-xs sm:text-sm leading-relaxed">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- 8 Key Head-to-Head Badge Cards -->
+        <div>
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2.5">
+            Key Domain Champions (Out of 25 Parameters)
+          </h4>
+          <div id="domainChampionsGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Pillar Score Comparison Bars -->
+        <div>
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2.5">
+            Pillar-by-Pillar Weighted Score Breakdown
+          </h4>
+          <div id="pillarBarsContainer" class="space-y-2.5">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Full 25-Specification Point-by-Point Breakdown Table -->
+    <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm overflow-hidden">
+      <!-- Filter & Search Header -->
+      <div class="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-indigo-500"></i>
+              Complete 25-Category Specification & Point Matrix (0–100 Scale)
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Every parameter is scored from <span class="font-mono font-semibold text-indigo-500">0 to 100 points</span> based on hardware telemetry, upgradeability, and price-to-performance ratio.
+            </p>
+          </div>
+
+          <!-- Spec Filter Controls -->
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Search inside 25 specs -->
+            <div class="relative">
+              <i class="fa-solid fa-filter absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input
+                id="specFilterInput"
+                type="text"
+                placeholder="Filter 25 specs (e.g. VRAM, sRGB, USB)..."
+                oninput="renderSpecTable()"
+                class="pl-8 pr-3 py-1.5 rounded-lg text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-indigo-500 w-56"
+              />
+            </div>
+
+            <!-- Show Only Clear Differences Toggle -->
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+              <input id="diffOnlyCheckbox" type="checkbox" onchange="renderSpecTable()" class="rounded text-indigo-600 focus:ring-0" />
+              <span>Highlight ≥8 Pt Gaps Only</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Category Group Filter Tabs -->
+        <div id="categoryTabsContainer" class="flex flex-wrap gap-1.5 pt-1">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- 25-Category Matrix Container -->
+      <div id="specMatrixContainer" class="divide-y divide-slate-200 dark:divide-slate-800/80">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-xs text-slate-400 border-t border-slate-200/60 dark:border-slate-800/60 mt-8">
+    <p class="font-semibold text-slate-600 dark:text-slate-300">
+      SpecMatrix Pro — Full-Stack Cloud Firestore + Gemini API Decision-Science Portfolio Project
+    </p>
+    <p class="mt-1">
+      Evaluates 25 distinct hardware, thermal, display, modularity, and ownership parameters on a 0–100 telemetry scale with real-time cloud persistence.
+    </p>
+  </footer>
+
+  <!-- MODAL 1: Add / Edit Custom Laptop in Cloud DB -->
+  <div id="customLaptopModal" class="hidden fixed inset-0 z-50 bg-slate-950/75 glass-card flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 my-8 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 id="customModalTitle" class="text-lg font-bold flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up text-indigo-500"></i>
+            Save or Edit Laptop in Cloud Firestore DB
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Configure key specifications and 0–100 point scores below. Changes sync immediately to Firestore.
+          </p>
+        </div>
+        <button onclick="closeCustomModal()" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-rose-500">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="customLaptopForm" onsubmit="handleCustomLaptopSubmit(event)" class="space-y-4 text-xs sm:text-sm">
+        <input id="custEditId" type="hidden" value="" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold mb-1">Laptop Brand & Model Name *</label>
+            <input id="custName" type="text" required placeholder="e.g., ASUS Zenbook 14 OLED (2025)" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Price (USD $) *</label>
+            <input id="custPriceUSD" type="number" required min="250" max="8000" value="1299" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Processor (CPU) Details *</label>
+            <input id="custCpuText" type="text" required placeholder="e.g., Intel Core Ultra 7 155H (16C / 22T)" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">CPU Performance Score (0–100) *</label>
+            <input id="custCpuScore" type="number" min="10" max="100" value="86" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">RAM Spec (Capacity, Type, Upgradeability) *</label>
+            <input id="custRamText" type="text" required placeholder="e.g., 32GB LPDDR5X-7467MHz (Soldered)" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">RAM Score (0–100) *</label>
+            <input id="custRamScore" type="number" min="10" max="100" value="85" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Graphics Card (GPU & VRAM) *</label>
+            <input id="custGpuText" type="text" required placeholder="e.g., NVIDIA RTX 4060 8GB GDDR6 (115W)" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">GPU Score (0–100) *</label>
+            <input id="custGpuScore" type="number" min="10" max="100" value="82" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Display Spec (Size, Panel, Hz, Nits) *</label>
+            <input id="custDisplayText" type="text" required placeholder="e.g., 14.5&quot; 2.8K OLED, 120Hz, 500 nits, 100% DCI-P3" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Display Score (0–100) *</label>
+            <input id="custDisplayScore" type="number" min="10" max="100" value="90" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Battery & Charging Spec *</label>
+            <input id="custBatteryText" type="text" required placeholder="e.g., 75Wh, ~11 hrs mixed use, 100W USB-C PD" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Battery Score (0–100) *</label>
+            <input id="custBatteryScore" type="number" min="10" max="100" value="84" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Weight (Laptop + Charger) *</label>
+            <input id="custWeightText" type="text" required placeholder="e.g., 1.35 kg laptop + 0.28 kg GaN adapter" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Repairability & Upgradeability Score (0–100) *</label>
+            <input id="custRepairScore" type="number" min="10" max="100" value="75" class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+          <button type="button" onclick="prefillAndFetchAi(document.getElementById('custName').value); closeCustomModal();" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/30 hover:bg-purple-500/20">
+            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto-Fill All 25 via Gemini AI Instead
+          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closeCustomModal()" class="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700">
+              Cancel
+            </button>
+            <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25">
+              Save 25-Point Profile to Cloud DB
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Product Management Architecture & PRD Showcase -->
+  <div id="prdModal" class="hidden fixed inset-0 z-50 bg-slate-950/75 glass-card flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-6 shadow-2xl space-y-5 my-8 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+            Product Management Artifact
+          </span>
+          <h3 class="text-lg font-bold mt-1">
+            Product Requirement Document (PRD) & Scoring Methodology
+          </h3>
+        </div>
+        <button onclick="closePrdModal()" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-rose-500">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <h4 class="font-bold text-slate-900 dark:text-white mb-1">1. Problem Statement & User Pain Point</h4>
+          <p>
+            Laptop buyers face severe <strong>cognitive overload</strong>. Raw specification sheets list 50+ cryptic acronyms (LPDDR5X-7467, PCIe Gen4x4, 140W TGP, ΔE &lt; 1.5, MIL-STD-810H) without translating them into <em>actionable utility</em> for a specific buyer's workflow. Furthermore, static comparison sites lack real-time AI ingestion for newly launched models and treat a 2.8 kg gaming rig and a 1.1 kg enterprise ultrabook with the same yardstick.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <h4 class="font-bold text-slate-900 dark:text-white mb-1">2. Core Value Proposition</h4>
+            <ul class="list-disc list-inside space-y-1">
+              <li><strong>25-Category Standardized Telemetry:</strong> Normalizes disparate hardware metrics onto an objective 0–100 scale.</li>
+              <li><strong>LLM-Assisted Spec Ingestion:</strong> Uses Gemini structured JSON schemas to synthesize and score any laptop model on demand.</li>
+              <li><strong>Cloud Firestore Persistence:</strong> Real-time `onSnapshot` synchronization for shared catalogs and comparison snapshots.</li>
+            </ul>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <h4 class="font-bold text-slate-900 dark:text-white mb-1">3. Product Success Metrics (North Star & KPIs)</h4>
+            <ul class="list-disc list-inside space-y-1">
+              <li><strong>Decision Confidence Rate:</strong> % of users who identify a clear winner and save a comparison snapshot within 90 seconds.</li>
+              <li><strong>Long-Tail Catalog Coverage:</strong> % of user-searched models dynamically ingested via Gemini API and cached in Firestore.</li>
+              <li><strong>Persona Engagement Rate:</strong> % of sessions interacting with the Persona Weighting Engine.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
+          <h4 class="font-bold text-indigo-600 dark:text-indigo-400 mb-1">4. Mathematical Scoring Architecture</h4>
+          <p class="font-mono text-xs">
+            Overall Weighted Score (0–100) = Σ (Pillar_Score_i × Persona_Pillar_Weight_i) / Σ (Persona_Pillar_Weights)
+          </p>
+          <p class="mt-1 text-xs">
+            Each of the 25 categories is scored from 0–100 and mapped to one of 5 core pillars: <strong>Compute & Graphics</strong>, <strong>Display & Media</strong>, <strong>Portability & Battery</strong>, <strong>Modularity & Connectivity</strong>, and <strong>Value, Security & Support</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Backend API, Live JSON Payload & FastAPI Template Inspector -->
+  <div id="backendModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 glass-card flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-4xl w-full p-6 shadow-2xl space-y-4 my-8 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
+        <div>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+            Full-Stack Engineering Telemetry
+          </span>
+          <h3 class="text-lg font-bold mt-1 flex items-center gap-2">
+            <i class="fa-solid fa-server text-cyan-500"></i>
+            Backend API, Cloud Firestore Document & FastAPI Reference
+          </h3>
+        </div>
+        <button onclick="closeBackendModal()" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-rose-500">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Tabs -->
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 shrink-0">
+        <div class="flex flex-wrap gap-2">
+          <button id="tabBtnJson" onclick="switchBackendTab('json')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white">
+            <i class="fa-solid fa-code mr-1"></i> Live 25-Spec JSON Payload
+          </button>
+          <button id="tabBtnFirestore" onclick="switchBackendTab('firestore')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <i class="fa-solid fa-database mr-1"></i> Cloud Firestore Telemetry
+          </button>
+          <button id="tabBtnFastapi" onclick="switchBackendTab('fastapi')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <i class="fa-brands fa-python mr-1"></i> Python FastAPI + SQLite Server Code
+          </button>
+        </div>
+
+        <button onclick="copyBackendCode()" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 flex items-center gap-1.5">
+          <i class="fa-regular fa-copy"></i>
+          <span id="copyCodeBtnText">Copy Code / JSON</span>
+        </button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div id="backendModalBody" class="flex-1 overflow-y-auto font-mono text-xs bg-slate-950 text-slate-200 p-4 rounded-xl border border-slate-800 leading-relaxed whitespace-pre-wrap"></div>
+    </div>
+  </div>
+
+  <!-- Application JavaScript (ES Module with Firebase Auth, Firestore & Gemini API) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    /*************************************************************************
+     * 1. MASTER SPECIFICATION METADATA (All 25 Required Categories, 0-100 Scale)
+     *************************************************************************/
+    const SPEC_CATEGORIES = [
+      { id: 'cpu', num: 1, name: 'Processor (CPU)', subtitle: 'Brand, model, generation, cores & threads', icon: 'fa-microchip', pillar: 'performance', pillarLabel: 'Performance & Thermals' },
+      { id: 'ram', num: 2, name: 'RAM (Memory)', subtitle: 'Capacity (GB), DDR4/DDR5, speed & upgradeability', icon: 'fa-memory', pillar: 'performance', pillarLabel: 'Performance & Thermals' },
+      { id: 'storage', num: 3, name: 'Storage', subtitle: 'SSD/HDD type, capacity (GB/TB) & upgradeability', icon: 'fa-hard-drive', pillar: 'performance', pillarLabel: 'Performance & Thermals' },
+      { id: 'gpu', num: 4, name: 'Graphics Card (GPU)', subtitle: 'Integrated/dedicated, model & VRAM', icon: 'fa-vr-cardboard', pillar: 'performance', pillarLabel: 'Performance & Thermals' },
+      { id: 'display', num: 5, name: 'Display', subtitle: 'Size, resolution, panel type, brightness & refresh rate', icon: 'fa-desktop', pillar: 'display', pillarLabel: 'Display, Audio & Chassis' },
+      { id: 'battery', num: 6, name: 'Battery', subtitle: 'Capacity (Wh), battery life & charging speed', icon: 'fa-battery-full', pillar: 'portability', pillarLabel: 'Portability & Efficiency' },
+      { id: 'os', num: 7, name: 'Operating System', subtitle: 'Windows, Linux or macOS ecosystem & readiness', icon: 'fa-terminal', pillar: 'ownership', pillarLabel: 'OS, Security & Value' },
+      { id: 'build', num: 8, name: 'Build Quality', subtitle: 'Material, hinge strength & MIL-STD durability', icon: 'fa-shield-halved', pillar: 'display', pillarLabel: 'Display, Audio & Chassis' },
+      { id: 'weight', num: 9, name: 'Weight & Footprint', subtitle: 'Laptop chassis weight & power adapter weight', icon: 'fa-feather-pointed', pillar: 'portability', pillarLabel: 'Portability & Efficiency' },
+      { id: 'cooling', num: 10, name: 'Cooling System', subtitle: 'Fans, heat pipes, vapor chamber & thermal performance', icon: 'fa-fan', pillar: 'performance', pillarLabel: 'Performance & Thermals' },
+      { id: 'ports', num: 11, name: 'Ports & I/O', subtitle: 'USB-A, USB-C/Thunderbolt, HDMI, Ethernet & audio jack', icon: 'fa-plug', pillar: 'modularity', pillarLabel: 'Connectivity & Modularity' },
+      { id: 'wireless', num: 12, name: 'Wireless Connectivity', subtitle: 'Wi-Fi standard (6E/7) & Bluetooth version', icon: 'fa-wifi', pillar: 'modularity', pillarLabel: 'Connectivity & Modularity' },
+      { id: 'keyboard', num: 13, name: 'Keyboard & Touchpad', subtitle: 'Backlighting, key travel, layout & haptic/glass comfort', icon: 'fa-keyboard', pillar: 'display', pillarLabel: 'Display, Audio & Chassis' },
+      { id: 'webcam', num: 14, name: 'Webcam & Microphone', subtitle: 'Sensor resolution (1080p/4K), IR & mic noise-canceling', icon: 'fa-camera', pillar: 'display', pillarLabel: 'Display, Audio & Chassis' },
+      { id: 'audio', num: 15, name: 'Audio System', subtitle: 'Speaker driver configuration, Spatial/Atmos & mic support', icon: 'fa-volume-high', pillar: 'display', pillarLabel: 'Display, Audio & Chassis' },
+      { id: 'upgradeability', num: 16, name: 'Upgradeability', subtitle: 'SODIMM RAM slots, M.2 SSD slots & replaceable components', icon: 'fa-screwdriver-wrench', pillar: 'modularity', pillarLabel: 'Connectivity & Modularity' },
+      { id: 'security', num: 17, name: 'Security Features', subtitle: 'Fingerprint reader, TPM 2.0/Pluton & webcam privacy shutter', icon: 'fa-fingerprint', pillar: 'ownership', pillarLabel: 'OS, Security & Value' },
+      { id: 'warranty', num: 18, name: 'Warranty & Service', subtitle: 'Standard duration, ADP coverage & onsite support', icon: 'fa-file-shield', pillar: 'ownership', pillarLabel: 'OS, Security & Value' },
+      { id: 'software', num: 19, name: 'Software Support', subtitle: 'Driver update cadence, BIOS maturity & OS compatibility', icon: 'fa-code-branch', pillar: 'ownership', pillarLabel: 'OS, Security & Value' },
+      { id: 'price', num: 20, name: 'Price & Value for Money', subtitle: 'Purchase price, street discounts & performance-per-dollar', icon: 'fa-tags', pillar: 'ownership', pillarLabel: 'OS, Security & Value' },
+      { id: 'repairability', num: 21, name: 'Repairability', subtitle: 'Spare parts availability, schematics & repair cost', icon: 'fa-toolbox', pillar: 'modularity', pillarLabel: 'Connectivity & Modularity' },
+      { id: 'benchmarks', num: 22, name: 'Performance Benchmarks', subtitle: 'Cinebench/Geekbench CPU, 3DMark GPU & sustained load', icon: 'fa-gauge-high', pillar: 'performance', pillarLabel: 'Performance & Thermals' },
+      { id: 'color', num: 23, name: 'Display Colour Accuracy', subtitle: 'sRGB / DCI-P3 / AdobeRGB coverage & factory ΔE calibration', icon: 'fa-palette', pillar: 'display', pillarLabel: 'Display, Audio & Chassis' },
+      { id: 'efficiency', num: 24, name: 'Power Efficiency', subtitle: 'Perf-per-watt, idle draw & chassis heat generation', icon: 'fa-bolt-lightning', pillar: 'portability', pillarLabel: 'Portability & Efficiency' },
+      { id: 'features', num: 25, name: 'Additional Features', subtitle: 'Touchscreen, 2-in-1 hinge, SD card reader & USB-C PD support', icon: 'fa-sparkles', pillar: 'modularity', pillarLabel: 'Connectivity & Modularity' }
+    ];
+
+    /*************************************************************************
+     * 2. PERSONA WEIGHTING DEFINITIONS
+     *************************************************************************/
+    const PERSONAS = {
+      balanced: {
+        id: 'balanced',
+        name: 'Balanced All-Rounder',
+        icon: 'fa-scale-balanced',
+        desc: 'Equal emphasis across compute, display, battery, modularity & value.',
+        weights: { performance: 25, display: 20, portability: 20, modularity: 15, ownership: 20 }
+      },
+      engineering: {
+        id: 'engineering',
+        name: 'Software & AI Dev',
+        icon: 'fa-laptop-code',
+        desc: 'Prioritizes CPU threads, RAM, keyboard, Linux/OS support & sustained thermals.',
+        weights: { performance: 35, display: 15, portability: 15, modularity: 20, ownership: 15 }
+      },
+      gaming: {
+        id: 'gaming',
+        name: 'Gaming & 3D Studio',
+        icon: 'fa-gamepad',
+        desc: 'Heavy weight on dedicated GPU VRAM, cooling system, refresh rate & benchmarks.',
+        weights: { performance: 48, display: 22, portability: 7, modularity: 13, ownership: 10 }
+      },
+      creator: {
+        id: 'creator',
+        name: 'Content Creation',
+        icon: 'fa-film',
+        desc: 'Prioritizes color accuracy (DCI-P3), display brightness, audio, SD slot & GPU.',
+        weights: { performance: 30, display: 35, portability: 15, modularity: 10, ownership: 10 }
+      },
+      student: {
+        id: 'student',
+        name: 'Student & Ultraportable',
+        icon: 'fa-graduation-cap',
+        desc: 'Focuses on light weight, all-day battery life, power efficiency & value for money.',
+        weights: { performance: 12, display: 15, portability: 35, modularity: 13, ownership: 25 }
+      }
+    };
+
+    /*************************************************************************
+     * 3. INITIAL SEED LAPTOP CATALOG (0–100 Scale Across All 25 Categories)
+     *************************************************************************/
+    const INITIAL_SEED_LAPTOPS = [
+      {
+        id: 'mbp16-m3max',
+        name: 'Apple MacBook Pro 16 (M3 Max)',
+        brand: 'Apple',
+        releaseYear: 2024,
+        tagline: 'Unrivaled ARM Efficiency, Mini-LED Mastery & Studio Audio',
+        priceUSD: 3499,
+        priceINR: 349900,
+        accentColor: '#6366f1',
+        visualStyle: 'macbook',
+        source: 'Seed Flagship',
+        bestFor: ['LLM Local Inference', '4K/8K Video Grading', 'Battery Unplugged Power'],
+        pros: ['18–22h real-world battery with zero unplug throttling', '1600-nit Mini-LED XDR + 6-speaker spatial audio', 'Up to 48GB/128GB unified memory for local LLMs'],
+        cons: ['Zero internal RAM/SSD upgradeability (soldered)', 'High entry price & serialized repair parts'],
+        specs: {
+          cpu: { score: 98, text: 'Apple M3 Max (3nm, 16-Core: 12P + 4E, 16 Threads, 400GB/s Unified Bandwidth)' },
+          ram: { score: 92, text: '48GB Unified LPDDR5-6400MHz (Ultra-fast bandwidth; non-upgradeable soldered)' },
+          storage: { score: 90, text: '1TB PCIe Gen4 NVMe SSD (Up to 7.4 GB/s read; soldered NAND modules)' },
+          gpu: { score: 94, text: 'Integrated 40-Core Apple M3 Max GPU (Shares up to 48GB Unified Memory, Hardware Ray Tracing)' },
+          display: { score: 99, text: '16.2" Liquid Retina XDR Mini-LED (3456×2234), 1000 nits sustained / 1600 peak, 120Hz ProMotion' },
+          battery: { score: 99, text: '100Wh Li-Po, 18–22 hrs real-world endurance, 140W MagSafe 3 fast charge (50% in 30m)' },
+          os: { score: 93, text: 'macOS Sonoma / Sequoia — UNIX-certified dev workflow, Metal acceleration (Asahi Linux WIP)' },
+          build: { score: 99, text: '100% Recycled CNC Unibody Aluminum, zero deck flex, precision-damped hinge' },
+          weight: { score: 68, text: '2.16 kg (4.7 lbs) laptop + 0.29 kg 140W GaN USB-C adapter (2.45 kg total carry)' },
+          cooling: { score: 94, text: 'Dual high-efficiency centrifugal fans + thick heat pipe; near-silent under normal compile loads' },
+          ports: { score: 86, text: '3× Thunderbolt 4 (USB-C), HDMI 2.1, MagSafe 3, High-impedance 3.5mm jack (No USB-A/Ethernet)' },
+          wireless: { score: 88, text: 'Wi-Fi 6E (802.11ax) + Bluetooth 5.3 (Rock-solid continuity, lacks Wi-Fi 7)' },
+          keyboard: { score: 96, text: 'Magic Keyboard (1mm tactile travel, ambient backlit) + industry-leading Force Touch haptic trackpad' },
+          webcam: { score: 92, text: '1080p FaceTime HD camera with M3 ISP computational video + studio-quality 3-mic array' },
+          audio: { score: 100, text: '6-speaker force-canceling woofer system with Spatial Audio — unmatched laptop speaker fidelity' },
+          upgradeability: { score: 20, text: '0 RAM slots, 0 M.2 slots — CPU, RAM, and SSD are permanently soldered to logic board' },
+          security: { score: 94, text: 'Touch ID biometric sensor + Apple Secure Enclave hardware encryption (No physical cam shutter)' },
+          warranty: { score: 82, text: '1-Year Apple Limited Warranty; optional AppleCare+ for 3-year accidental damage & global service' },
+          software: { score: 98, text: '7+ years of day-one macOS updates, zero bloatware, seamless firmware & driver delivery' },
+          price: { score: 64, text: '$3,499 / ₹3,49,900 — Ultra-premium investment; high resale value but steep entry cost' },
+          repairability: { score: 35, text: 'Self-Service Repair manuals available, but serialized parts pairing & costly board replacements' },
+          benchmarks: { score: 97, text: 'Geekbench 6: 3,125 Single / 21,200 Multi; 100% identical performance on battery vs AC power' },
+          color: { score: 99, text: '100% sRGB, 99.8% DCI-P3, factory calibrated XDR reference modes (ΔE < 0.8)' },
+          efficiency: { score: 100, text: '3nm TSMC architecture delivers class-leading performance-per-watt (30W–78W package draw)' },
+          features: { score: 85, text: 'UHS-II SDXC card reader, 140W USB-C PD support, multi-display support (No touchscreen)' }
+        }
+      },
+      {
+        id: 'thinkpad-x1-g12',
+        name: 'Lenovo ThinkPad X1 Carbon Gen 12',
+        brand: 'Lenovo',
+        releaseYear: 2024,
+        tagline: 'The 1.09 kg Enterprise & Linux Ultraportable Gold Standard',
+        priceUSD: 1989,
+        priceINR: 184990,
+        accentColor: '#10b981',
+        visualStyle: 'thinkpad',
+        source: 'Seed Flagship',
+        bestFor: ['Enterprise & Travel', 'Linux Kernel Developers', 'Marathon Typing'],
+        pros: ['Featherweight 1.09 kg Carbon-Fiber MIL-STD-810H chassis', 'Official Ubuntu/Fedora Linux support + best-in-class keyboard', '3-Year Premier Onsite Warranty & full USB-A/HDMI ports'],
+        cons: ['Integrated Intel Arc GPU not meant for heavy 3D/AAA gaming', 'Soldered LPDDR5X memory'],
+        specs: {
+          cpu: { score: 83, text: 'Intel Core Ultra 7 155H (Meteor Lake, 16 Cores: 6P+8E+2LPE, 22 Threads, Intel AI Boost NPU)' },
+          ram: { score: 85, text: '32GB LPDDR5X-6400MHz Dual-Channel (Low-power high speed, soldered to save board height)' },
+          storage: { score: 88, text: '1TB PCIe Gen4x4 Performance NVMe SSD (1× M.2 2280 user-replaceable slot)' },
+          gpu: { score: 68, text: 'Integrated Intel Arc Graphics (8 Xe-Cores, shared system RAM — great for media, light 3D)' },
+          display: { score: 91, text: '14.0" 2.8K (2880×1800) OLED Anti-Glare/Anti-Reflection, 400 nits, 120Hz VRR' },
+          battery: { score: 84, text: '57Wh CRU battery, ~11.5 hrs office productivity, 65W USB-C Rapid Charge (80% in 60m)' },
+          os: { score: 99, text: 'Windows 11 Pro or Official Ubuntu / Fedora Linux Factory Certification (100/100 Linux support)' },
+          build: { score: 98, text: 'Aerospace Carbon-Fiber weave lid + Magnesium alloy chassis; MIL-STD-810H torture-tested, 180° hinge' },
+          weight: { score: 99, text: '1.09 kg (2.40 lbs) laptop + 0.18 kg slim 65W USB-C adapter (Featherweight carry)' },
+          cooling: { score: 78, text: 'Compact dual-fan rear-exhaust thermal module; tuned for quiet acoustics (28W sustained TDP)' },
+          ports: { score: 90, text: '2× Thunderbolt 4, 2× USB-A 3.2 Gen1, HDMI 2.1, 3.5mm Audio Jack (Rare USB-A on 1kg laptop!)' },
+          wireless: { score: 98, text: 'Intel Wi-Fi 7 (BE200) + Bluetooth 5.4 + Optional 5G Sub-6 eSIM WWAN modem' },
+          keyboard: { score: 100, text: 'Legendary ThinkPad sculpted tactile keyboard with TrackPoint nub, air-intake keys & haptic touchpad' },
+          webcam: { score: 94, text: '8MP (4K) MIPI Computer Vision Webcam + Windows Hello IR + Dual 360° far-field mics' },
+          audio: { score: 79, text: 'Dual upward-firing Dolby Atmos speakers hidden under keyboard deck; crisp voice clarity' },
+          upgradeability: { score: 68, text: 'Soldered LPDDR5X RAM; easily swappable M.2 2280 SSD, WWAN card, and battery' },
+          security: { score: 100, text: 'Match-on-Chip Fingerprint Reader, dTPM 2.0, IR Face Unlock, Ultrasonic Human Presence, Physical Shutter' },
+          warranty: { score: 98, text: '3-Year Lenovo Premier Next-Business-Day Onsite Support + International Warranty coverage' },
+          software: { score: 95, text: 'Lenovo Commercial Vantage (clean driver updates) + Direct LVFS fwupd Linux BIOS updates' },
+          price: { score: 75, text: '$1,989 / ₹1,84,990 — Frequent corporate/student discounts improve value for enterprise durability' },
+          repairability: { score: 86, text: 'Public Hardware Maintenance Manual (HMM), captive bottom screws, widely available OEM parts' },
+          benchmarks: { score: 80, text: 'Cinebench R23 Multi: ~14,200; Geekbench 6 Multi: ~12,600 — Snappy burst & compile speeds' },
+          color: { score: 94, text: '100% sRGB, 100% DCI-P3 OLED panel with Dolby Vision HDR True Black 500 certification' },
+          efficiency: { score: 89, text: 'Low-Power Island E-cores handle background tasks cleanly; cool palmrest under typing loads' },
+          features: { score: 88, text: '180° flat hinge, TrackPoint Quick Menu, dual-side USB-C charging, optional touchscreen SKU' }
+        }
+      },
+      {
+        id: 'zephyrus-g16-2024',
+        name: 'ASUS ROG Zephyrus G16 (2024)',
+        brand: 'ASUS',
+        releaseYear: 2024,
+        tagline: 'CNC Aluminum Unibody Meets 240Hz G-SYNC OLED & RTX 4080',
+        priceUSD: 2699,
+        priceINR: 249990,
+        accentColor: '#ec4899',
+        visualStyle: 'gaming-sleek',
+        source: 'Seed Flagship',
+        bestFor: ['AAA Gaming & Ray Tracing', '3D Blender/Unreal Engine', 'Sleek Hybrid Carry'],
+        pros: ['Stunning 240Hz G-SYNC Nebula OLED panel', '1.85 kg CNC aluminum unibody with RTX 4080 12GB', 'Dual M.2 PCIe 4.0 SSD slots + 6-speaker Dolby Atmos'],
+        cons: ['Soldered system RAM on 2024 redesign', '115W GPU TGP is slightly lower than 175W thick rigs'],
+        specs: {
+          cpu: { score: 91, text: 'Intel Core Ultra 9 185H (16 Cores / 22 Threads, up to 5.1 GHz boost + NPU)' },
+          ram: { score: 86, text: '32GB LPDDR5X-7467MHz Dual-Channel (Blazing fast clocks; soldered for 1.49cm thin profile)' },
+          storage: { score: 94, text: '2TB PCIe 4.0 NVMe M.2 SSD + Second open M.2 2280 PCIe 4.0 slot for instant expansion' },
+          gpu: { score: 95, text: 'NVIDIA GeForce RTX 4080 Laptop GPU (12GB GDDR6 VRAM, 115W TGP w/ Dynamic Boost, MUX + Adv Optimus)' },
+          display: { score: 98, text: '16.0" ROG Nebula OLED 2.5K (2560×1600), 240Hz / 0.2ms, NVIDIA G-SYNC, 500 nits HDR' },
+          battery: { score: 83, text: '90Wh battery, ~8.5 hrs iGPU productivity, 240W rectangle charger + 100W USB-C PD travel charging' },
+          os: { score: 85, text: 'Windows 11 Home/Pro (Pairs smoothly with G-Helper lightweight control utility)' },
+          build: { score: 93, text: 'Precision CNC-machined aluminum alloy chassis (1.49cm thin) with Platinum White / Eclipse Gray finish' },
+          weight: { score: 84, text: '1.85 kg (4.08 lbs) laptop + 0.58 kg 240W power brick (Remarkably light for a 16" RTX 4080 rig)' },
+          cooling: { score: 92, text: 'ROG Intelligent Cooling: Vapor Chamber + Tri-Fan technology + Thermal Grizzly Liquid Metal on CPU' },
+          ports: { score: 93, text: '1× Thunderbolt 4, 1× USB-C 3.2 Gen2, 2× USB-A 3.2 Gen2, HDMI 2.1 FRL, Full-size SD Express 7.0, Audio' },
+          wireless: { score: 94, text: 'Wi-Fi 6E Triple-Band (2×2) + Bluetooth 5.3 (Socketed wireless card)' },
+          keyboard: { score: 91, text: '1.7mm travel quiet gaming keyboard (1-zone RGB) + massive 16:10 edge-to-edge glass touchpad' },
+          webcam: { score: 83, text: '1080p FHD IR Webcam for Windows Hello + 3D AI Noise-Canceling microphone array' },
+          audio: { score: 96, text: '6-Speaker Dolby Atmos audio system with dual force-canceling woofers (Rivals MacBook Pro 16!)' },
+          upgradeability: { score: 74, text: '2× M.2 2280 PCIe 4.0 SSD slots + upgradeable Wi-Fi module (RAM is soldered)' },
+          security: { score: 80, text: 'Windows Hello 3D IR Facial Recognition + Firmware TPM 2.0 (Lacks fingerprint sensor & shutter)' },
+          warranty: { score: 78, text: '1-Year ASUS Global Warranty with 1-Year Accidental Damage Protection (ADP) included in select regions' },
+          software: { score: 82, text: 'MyASUS + Armoury Crate (or open-source G-Helper) for custom fan curves and GPU MUX switching' },
+          price: { score: 83, text: '$2,699 / ₹2,49,990 — Competitive for a CNC unibody 240Hz OLED + 12GB VRAM workstation' },
+          repairability: { score: 72, text: 'Torx bottom cover access to fans, battery, Wi-Fi, and dual SSDs; liquid metal requires care' },
+          benchmarks: { score: 94, text: '3DMark Time Spy Graphics: ~14,800; Cinebench R23 Multi: ~17,900; 0.2ms OLED motion clarity' },
+          color: { score: 98, text: '100% DCI-P3, Pantone Validated OLED, Factory Calibrated ΔE < 1.0 with switchable sRGB/P3 profiles' },
+          efficiency: { score: 84, text: 'Advanced Optimus automatically disables RTX 4080 on battery, dropping idle draw to ~9W' },
+          features: { score: 94, text: 'Slash Lighting LED array lid, Full-size SD card reader (UHS-II), G-SYNC OLED, 100W USB-C PD' }
+        }
+      },
+      {
+        id: 'framework-16',
+        name: 'Framework Laptop 16 (DIY Edition)',
+        brand: 'Framework',
+        releaseYear: 2024,
+        tagline: '10/10 iFixit Repairability, Swappable GPU Bay & Open Hardware',
+        priceUSD: 2099,
+        priceINR: 192000,
+        accentColor: '#f59e0b',
+        visualStyle: 'framework',
+        source: 'Seed Flagship',
+        bestFor: ['Right-to-Repair Advocates', 'Hardware Hackers & Linux', 'Long-Term Modularity'],
+        pros: ['100/100 Upgradeability & Repairability with QR-coded parts', '6 hot-swappable I/O port bays + modular discrete GPU shell', 'Open-source EC firmware & QMK programmable keyboard'],
+        cons: ['Slightly thicker chassis footprint with GPU bay attached', 'Speakers are average compared to MacBook/Zephyrus'],
+        specs: {
+          cpu: { score: 90, text: 'AMD Ryzen 9 7940HS (4nm Zen 4, 8 Cores / 16 Threads, up to 5.2 GHz — Upgradeable Mainboard!)' },
+          ram: { score: 99, text: '32GB DDR5-5600MHz Dual-Channel via 2× User-Accessible SODIMM Slots (Upgradeable up to 96GB!)' },
+          storage: { score: 99, text: '2TB PCIe Gen4 NVMe (1× M.2 2280 + 1× M.2 2230 internal slots + Expansion Card SSD support!)' },
+          gpu: { score: 83, text: 'Modular AMD Radeon RX 7700S 8GB GDDR6 (100W TGP via hot-swappable Expansion Bay Shell)' },
+          display: { score: 88, text: '16.0" 2.5K (2560×1600) Matte IPS, 165Hz FreeSync, 500 nits, 16:10 (Replaceable in 3 minutes)' },
+          battery: { score: 85, text: '85Wh user-replaceable battery + world-first 180W USB-C PD 3.1 GaN charger' },
+          os: { score: 100, text: 'BYO OS: Windows 11, Ubuntu, Fedora, Arch, NixOS — 100% open-source EC firmware & Linux guides' },
+          build: { score: 86, text: 'Recycled Magnesium-Aluminum chassis; engineered for tool-less / single-Torx T5 fastener access' },
+          weight: { score: 72, text: '2.10 kg (w/ Shell) or 2.40 kg (w/ RX 7700S GPU module) + 0.35 kg 180W GaN USB-C adapter' },
+          cooling: { score: 85, text: 'Dual Cooler Master fans + Phase-change Honeywell PTM7958 thermal pad (No pump-out degradation)' },
+          ports: { score: 100, text: '6× Hot-Swappable Expansion Card Slots! Choose any mix of USB4, USB-A, HDMI, DP, 2.5GbE Ethernet, SD, Audio' },
+          wireless: { score: 92, text: 'AMD RZ616 Wi-Fi 6E + Bluetooth 5.3 (Standard non-whitelisted M.2 2230 slot — upgrade to Wi-Fi 7 anytime)' },
+          keyboard: { score: 90, text: 'Magnetic Input Deck! Slide keyboard left/center/right, add Numpad or RGB Macro Pad, QMK/VIA open firmware' },
+          webcam: { score: 88, text: '1080p 60fps Omnivision sensor + Hardware Privacy Switches that physically cut power to camera & mics' },
+          audio: { score: 75, text: 'Stereo 2W woofers + 1W tweeters; respectable clarity though bass is lighter than MacBook/Zephyrus' },
+          upgradeability: { score: 100, text: 'Unmatched 100/100: Upgrade CPU mainboard, GPU bay, 2× DDR5 RAM slots, 2× M.2 SSDs, screen, keyboard & ports' },
+          security: { score: 95, text: 'Fingerprint Reader integrated in power button, Pluton/TPM 2.0, Hardware Circuit Cutoff Switches' },
+          warranty: { score: 84, text: '1–2 Year Warranty; explicitly permits user tinkering, overclocking, and third-party part installation' },
+          software: { score: 94, text: 'Zero bloatware, one-click Driver Bundle, open-source Embedded Controller (EC) on GitHub' },
+          price: { score: 80, text: '$2,099 / ₹1,92,000 (DIY BYO RAM/SSD saves ~30% vs pre-configured competitors over 5 years)' },
+          repairability: { score: 100, text: '10/10 iFixit Score: QR codes on every internal part linking directly to step-by-step guides & store' },
+          benchmarks: { score: 87, text: 'Cinebench R23 Multi: ~17,500; 3DMark Time Spy: ~10,400 — Strong sustained 100W GPU + 45W CPU load' },
+          color: { score: 87, text: '100% DCI-P3 coverage on matte anti-glare panel (Great for coding & outdoor work without glare)' },
+          efficiency: { score: 88, text: 'TSMC 4nm Ryzen 7040HS excels at low-wattage efficiency when GPU bay is swapped for lightweight shell' },
+          features: { score: 98, text: 'QMK/VIA programmable keyboard, hot-swap I/O modules, modular discrete GPU bay, 180W USB-C PD 3.1' }
+        }
+      },
+      {
+        id: 'legion-pro-7i-g9',
+        name: 'Lenovo Legion Pro 7i Gen 9',
+        brand: 'Lenovo',
+        releaseYear: 2024,
+        tagline: '250W Combined Cross-Load TDP Desktop Replacement Titan',
+        priceUSD: 2849,
+        priceINR: 274990,
+        accentColor: '#3b82f6',
+        visualStyle: 'gaming-heavy',
+        source: 'Seed Flagship',
+        bestFor: ['Maximum FPS & Ray Tracing', 'CUDA / PyTorch Training', 'Sustained Heavy Loads'],
+        pros: ['Full 175W RTX 4090 16GB VRAM + 24-Core i9-14900HX', 'ColdFront Vapor Chamber sustains 250W combined cross-load', '2× DDR5 SODIMM + 2× M.2 PCIe 4.0 slots + full rear I/O'],
+        cons: ['Heavy 2.80 kg chassis + 0.85 kg 330W brick', 'Modest ~5.5 hour unplugged battery life'],
+        specs: {
+          cpu: { score: 99, text: 'Intel Core i9-14900HX (24 Cores: 8P + 16E, 32 Threads, up to 5.8 GHz boost, unlocked undervolting)' },
+          ram: { score: 96, text: '32GB DDR5-5600MHz Dual-Channel (2× user-upgradeable SODIMM slots, supports up to 64GB)' },
+          storage: { score: 96, text: '2TB (2× 1TB RAID/Split) PCIe Gen4x4 NVMe SSDs across dual M.2 2280 slots with metal heatsinks' },
+          gpu: { score: 100, text: 'NVIDIA GeForce RTX 4090 Laptop GPU (16GB GDDR6 VRAM, full 175W TGP, MUX Switch + G-SYNC)' },
+          display: { score: 92, text: '16.0" WQXGA (2560×1600) IPS PureSight, 240Hz, 500 nits, 100% DCI-P3, DisplayHDR 400 (Zero burn-in risk)' },
+          battery: { score: 68, text: '99.99Wh (Max legal flight limit), ~5.5 hrs light use, massive 330W GaN slim brick + 140W USB-C PD' },
+          os: { score: 88, text: 'Windows 11 Pro + Lenovo Legion Toolkit support; solid dual-boot Ubuntu/Pop!_OS NVIDIA support' },
+          build: { score: 92, text: 'Anodized Aluminum lid and bottom deck with reinforced polymer thermal rear shelf' },
+          weight: { score: 48, text: '2.80 kg (6.17 lbs) laptop + 0.85 kg 330W GaN charger (3.65 kg total — Built for desk dominance)' },
+          cooling: { score: 100, text: 'Legion ColdFront: Extra-wide Vapor Chamber + Liquid Metal on CPU & GPU (Sustains 250W combined load!)' },
+          ports: { score: 98, text: '1× Thunderbolt 4, 1× USB-C (140W PD/DP), 4× USB-A 3.2, HDMI 2.1, 2.5Gb RJ45 Ethernet, Audio (Rear I/O!)' },
+          wireless: { score: 93, text: 'Intel Killer Wi-Fi 6E AX1690i + Bluetooth 5.3 (Socketed M.2 card)' },
+          keyboard: { score: 93, text: 'Legion TrueStrike 1.5mm travel per-key RGB keyboard with full Numpad, full-size arrow keys & swappable caps' },
+          webcam: { score: 78, text: '1080p FHD Webcam with electronic E-Shutter toggle on chassis side (No IR Windows Hello)' },
+          audio: { score: 80, text: 'Dual 2W Harman Super Linear Speaker System with Nahimic Audio tuning' },
+          upgradeability: { score: 94, text: '2× DDR5 SODIMM slots, 2× M.2 2280 PCIe 4.0 SSD slots, socketed Wi-Fi card, replaceable 99.9Wh battery' },
+          security: { score: 78, text: 'Firmware TPM 2.0 + Side Physical Webcam E-Shutter switch (No biometric fingerprint/IR sensor)' },
+          warranty: { score: 94, text: 'Lenovo Legion Ultimate Support (24/7 gamer-centric technicians + next-day onsite service)' },
+          software: { score: 90, text: 'Lenovo LA2-Q AI chip auto-tunes TDP + clean BIOS overclocking/undervolting menus' },
+          price: { score: 85, text: '$2,849 / ₹2,74,990 — High absolute price, but best-in-class FPS and 16GB VRAM per dollar' },
+          repairability: { score: 83, text: 'Standard Phillips screws, shielded RAM/SSD cages, accessible battery & Lenovo parts lookup' },
+          benchmarks: { score: 100, text: '3DMark Time Spy: ~22,100; Cinebench R23 Multi: ~31,500 — Desktop-class workstation velocity' },
+          color: { score: 91, text: '100% sRGB, 100% DCI-P3 X-Rite Pantone factory color calibration profiles included' },
+          efficiency: { score: 62, text: '55W HX-series desktop die prioritizes peak clock speeds over idle battery life' },
+          features: { score: 89, text: 'Rear-port cable management shelf, AI LA2-Q tuning chip, 140W USB-C PD charging, Per-Key RGB + Lightbar' }
+        }
+      },
+      {
+        id: 'hp-pavilion-plus-14',
+        name: 'HP Pavilion Plus 14 (OLED Edition)',
+        brand: 'HP',
+        releaseYear: 2024,
+        tagline: 'Unbeatable Sub-$1,000 All-Metal 2.8K 120Hz OLED Value King',
+        priceUSD: 899,
+        priceINR: 84990,
+        accentColor: '#8b5cf6',
+        visualStyle: 'ultrabook',
+        source: 'Seed Flagship',
+        bestFor: ['CS & Engineering Students', 'Budget-Conscious Buyers', 'Media & Daily Coding'],
+        pros: ['Incredible sub-$900 price for 2.8K 120Hz OLED + all-metal build', 'Efficient 4nm AMD Ryzen 7 7840U with Radeon 780M graphics', '1.38 kg ultraportable with USB4 + HDMI 2.1 + USB-A'],
+        cons: ['16GB LPDDR5X RAM is soldered', 'Single M.2 SSD slot'],
+        specs: {
+          cpu: { score: 84, text: 'AMD Ryzen 7 7840U / 8840U (4nm Zen 4, 8 Cores / 16 Threads, up to 5.1 GHz, Ryzen AI NPU)' },
+          ram: { score: 80, text: '16GB LPDDR5X-6400MHz Dual-Channel (Fast for iGPU, soldered non-upgradeable)' },
+          storage: { score: 85, text: '1TB PCIe Gen4 NVMe M.2 2280 SSD (User-upgradeable slot)' },
+          gpu: { score: 72, text: 'Integrated AMD Radeon 780M (12 RDNA3 Compute Units — rivals entry discrete GPUs for eSports)' },
+          display: { score: 95, text: '14.0" 2.8K (2880×1800) IMAX Enhanced OLED, 120Hz VRR, 500 nits HDR, 0.2ms response' },
+          battery: { score: 81, text: '68Wh Li-Ion polymer, ~9.5 hrs mixed student workflow, 100W USB-C Fast Charge (50% in 30m)' },
+          os: { score: 88, text: 'Windows 11 Home + Excellent mainline Linux kernel support for AMD Zen 4 / Radeon 780M' },
+          build: { score: 85, text: 'Full Recycled Aluminum three-sided metal chassis (Rare at this price point!)' },
+          weight: { score: 93, text: '1.38 kg (3.04 lbs) laptop + 0.24 kg compact USB-C power adapter' },
+          cooling: { score: 80, text: 'Dual fan + dual heat-pipe system; keeps Ryzen 7840U cool and quiet at 28W–35W TDP' },
+          ports: { score: 89, text: '1× USB-C (USB4 40Gbps), 1× USB-C 3.2, 2× USB-A 3.2, HDMI 2.1, 3.5mm Audio' },
+          wireless: { score: 89, text: 'Wi-Fi 6E (2×2) + Bluetooth 5.3' },
+          keyboard: { score: 84, text: 'Crisp backlit chiclet keyboard with high-contrast key legends + precision Mylar touchpad' },
+          webcam: { score: 90, text: '5MP (1440p QHD) Wide Vision IR Camera with physical privacy shutter + dual array mics' },
+          audio: { score: 78, text: 'Dual speakers tuned by B&O (Bang & Olufsen) with HP Audio Boost' },
+          upgradeability: { score: 62, text: '1× M.2 2280 SSD slot & replaceable battery; 16GB LPDDR5X RAM is soldered' },
+          security: { score: 91, text: 'Windows Hello IR Face Unlock + Physical Mechanical Webcam Shutter + Firmware TPM 2.0' },
+          warranty: { score: 78, text: '1-Year HP Standard Onsite Warranty (Expandable via HP Care Pack)' },
+          software: { score: 78, text: 'HP Support Assistant for BIOS updates (Includes minor pre-installed apps easily removed)' },
+          price: { score: 99, text: '$899 / ₹84,990 — Extraordinary performance, aluminum build, and 2.8K OLED per dollar!' },
+          repairability: { score: 76, text: '4 screws open the bottom panel for easy SSD, fan cleaning, and battery replacement' },
+          benchmarks: { score: 82, text: 'Cinebench R23 Multi: ~14,600; Geekbench 6 Multi: ~11,800 — Punching way above its price class' },
+          color: { score: 95, text: '100% DCI-P3, VESA True Black HDR 500 certified OLED panel' },
+          efficiency: { score: 92, text: 'TSMC 4nm Ryzen 7840U sips power during VS Code, browser, and video playback' },
+          features: { score: 82, text: 'IMAX Enhanced OLED certification, physical webcam switch, 100W USB-C PD charging' }
+        }
+      }
+    ];
+
+    let LAPTOPS_DB = [...INITIAL_SEED_LAPTOPS];
+    let CLOUD_SNAPSHOTS = [];
+
+    /*************************************************************************
+     * 4. APPLICATION STATE & FIREBASE CLOUD INITIALIZATION
+     *************************************************************************/
+    let state = {
+      viewMode: 'compare2', // 'single' | 'compare2' | 'compare3'
+      selectedIds: ['mbp16-m3max', 'thinkpad-x1-g12', 'zephyrus-g16-2024'],
+      activeSlotIndex: 0,
+      activePersona: 'balanced',
+      customWeights: { ...PERSONAS.balanced.weights },
+      activeCategoryTab: 'all',
+      currency: 'INR',
+      backendTab: 'json',
+      cloudConnected: false,
+      userId: null,
+      appId: typeof __app_id !== 'undefined' ? __app_id : 'specmatrix-pro-app'
+    };
+
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+
+    // Normalize any legacy 0-10 scores to 0-100 scale seamlessly
+    function normalizeScore100(rawScore) {
+      const num = Number(rawScore) || 0;
+      if (num <= 10 && num > 0) {
+        return Math.round(num * 10);
+      }
+      return Math.min(100, Math.max(0, Math.round(num)));
+    }
+
+    function normalizeLaptopRecord(laptop) {
+      const copy = { ...laptop };
+      copy.specs = { ...(laptop.specs || {}) };
+      SPEC_CATEGORIES.forEach(cat => {
+        const existing = copy.specs[cat.id] || { score: 75, text: 'Standard specification configuration' };
+        copy.specs[cat.id] = {
+          score: normalizeScore100(existing.score),
+          text: existing.text || 'Standard specification configuration'
+        };
+      });
+      if (!Array.isArray(copy.bestFor) || copy.bestFor.length === 0) {
+        copy.bestFor = ['General Productivity', 'Multi-Tasking'];
+      }
+      if (!Array.isArray(copy.pros) || copy.pros.length === 0) {
+        copy.pros = ['Balanced hardware specification profile', 'Competitive category telemetry scores'];
+      }
+      if (!Array.isArray(copy.cons) || copy.cons.length === 0) {
+        copy.cons = ['Trade-offs depend on specific user persona weights'];
+      }
+      return copy;
+    }
+
+    LAPTOPS_DB = LAPTOPS_DB.map(normalizeLaptopRecord);
+
+    // Non-blocking toast notification helper
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const colors = {
+        info: 'border-indigo-500/40 bg-slate-900/95 text-indigo-200',
+        success: 'border-emerald-500/40 bg-slate-900/95 text-emerald-300',
+        warning: 'border-amber-500/40 bg-slate-900/95 text-amber-300',
+        error: 'border-rose-500/40 bg-slate-900/95 text-rose-300'
+      };
+      const icons = {
+        info: 'fa-circle-info text-indigo-400',
+        success: 'fa-circle-check text-emerald-400',
+        warning: 'fa-triangle-exclamation text-amber-400',
+        error: 'fa-circle-exclamation text-rose-400'
+      };
+
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto p-3.5 rounded-xl border shadow-2xl flex items-start gap-2.5 text-xs font-medium transition-all duration-300 ${colors[type] || colors.info}`;
+      toast.innerHTML = `
+        <i class="fa-solid ${icons[type] || icons.info} text-sm mt-0.5 shrink-0"></i>
+        <div class="flex-1 leading-relaxed">${message}</div>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 4200);
+    }
+
+    function updateCloudBadgeUI(status, docCount) {
+      const badge = document.getElementById('cloudDbStatusBadge');
+      const dot = document.getElementById('cloudStatusDot');
+      const text = document.getElementById('cloudStatusText');
+      const countEl = document.getElementById('cloudDocCountBadge');
+      if (!badge) return;
+
+      countEl.textContent = `${docCount} docs`;
+      if (status === 'connected') {
+        badge.className = 'px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center gap-2 transition hover:border-emerald-500/60';
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+        text.textContent = 'Cloud DB Connected (Firestore)';
+      } else if (status === 'local') {
+        badge.className = 'px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition';
+        dot.className = 'w-2 h-2 rounded-full bg-indigo-500';
+        text.textContent = 'In-Memory DB Ready';
+      }
+    }
+
+    // Initialize Firebase Auth & Firestore (Strict Rule 1, 2, 3 Compliance)
+    async function initCloudDatabase() {
+      try {
+        const firebaseConfig = {
+        apiKey: "AIzaSyCbzsSdVNTg03oHFs9_Ue5e7IjST3wVdDI",
+        authDomain: "spacematrix-pro.firebaseapp.com",
+        projectId: "spacematrix-pro",
+        storageBucket: "spacematrix-pro.firebasestorage.app",
+        messagingSenderId: "881719453032",
+        appId: "1:881719453032:web:952ea05abfd87baf6f22dd"
+          };
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        // RULE 3: Authenticate FIRST before any Firestore operation
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        currentUser = auth.currentUser;
+        if (!currentUser) return;
+
+        state.userId = currentUser.uid;
+        state.cloudConnected = true;
+
+        // RULE 1: Strict public collection paths
+        const laptopsColRef = collection(db, 'artifacts', state.appId, 'public', 'data', 'laptops');
+        const snapshotsColRef = collection(db, 'artifacts', state.appId, 'public', 'data', 'comparison_snapshots');
+
+        // Listen to real-time updates on laptops collection (RULE 2: Simple collection query + error callback)
+        onSnapshot(
+          laptopsColRef,
+          async (snapshot) => {
+            if (!currentUser) return;
+            if (snapshot.empty) {
+              // Automatically seed Firestore with our flagship laptops if empty
+              showToast('Seeding Cloud Firestore with flagship laptop telemetry...', 'info');
+              for (const seedLaptop of INITIAL_SEED_LAPTOPS) {
+                const docRef = doc(db, 'artifacts', state.appId, 'public', 'data', 'laptops', seedLaptop.id);
+                await setDoc(docRef, {
+                  ...seedLaptop,
+                  updatedAt: new Date().toISOString(),
+                  updatedBy: currentUser.uid
+                });
+              }
+              return;
+            }
+
+            const loadedLaptops = [];
+            snapshot.forEach((docSnap) => {
+              loadedLaptops.push(normalizeLaptopRecord({ id: docSnap.id, ...docSnap.data() }));
+            });
+
+            // Sort in JS memory (AI/Custom first, then alphabetical)
+            loadedLaptops.sort((a, b) => {
+              const aIsCustom = a.source && a.source !== 'Seed Flagship' ? 0 : 1;
+              const bIsCustom = b.source && b.source !== 'Seed Flagship' ? 0 : 1;
+              if (aIsCustom !== bIsCustom) return aIsCustom - bIsCustom;
+              return a.name.localeCompare(b.name);
+            });
+
+            LAPTOPS_DB = loadedLaptops;
+            // Ensure selectedIds exist in DB
+            state.selectedIds = state.selectedIds.map((id, idx) =>
+              LAPTOPS_DB.some(l => l.id === id) ? id : (LAPTOPS_DB[idx % LAPTOPS_DB.length]?.id || LAPTOPS_DB[0].id)
+            );
+
+            updateCloudBadgeUI('connected', LAPTOPS_DB.length);
+            renderAll();
+          },
+          (error) => {
+            console.error('Firestore laptops listener error:', error);
+            updateCloudBadgeUI('local', LAPTOPS_DB.length);
+          }
+        );
+
+        // Listen to real-time updates on saved Head-to-Head Comparison Snapshots
+        onSnapshot(
+          snapshotsColRef,
+          (snapshot) => {
+            if (!currentUser) return;
+            const list = [];
+            snapshot.forEach((docSnap) => {
+              list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+            CLOUD_SNAPSHOTS = list;
+            renderCloudSnapshots();
+          },
+          (err) => {
+            console.error('Firestore snapshots listener error:', err);
+          }
+        );
+
+      } catch (err) {
+        console.error('Cloud DB Init Fallback:', err);
+        updateCloudBadgeUI('local', LAPTOPS_DB.length);
+      }
+    }
+
+    // Save or Update a laptop document in Firestore
+    async function saveLaptopToFirestore(laptopObj) {
+      const normalized = normalizeLaptopRecord(laptopObj);
+      const existingIdx = LAPTOPS_DB.findIndex(l => l.id === normalized.id);
+      if (existingIdx >= 0) {
+        LAPTOPS_DB[existingIdx] = normalized;
+      } else {
+        LAPTOPS_DB.unshift(normalized);
+      }
+      renderAll();
+
+      if (db && currentUser) {
+        try {
+          const docRef = doc(db, 'artifacts', state.appId, 'public', 'data', 'laptops', normalized.id);
+          await setDoc(docRef, {
+            ...normalized,
+            updatedAt: new Date().toISOString(),
+            updatedBy: currentUser.uid
+          });
+          showToast(`Saved <strong>${normalized.name}</strong> to Cloud Firestore DB!`, 'success');
+        } catch (err) {
+          console.error('Error saving laptop to Firestore:', err);
+          showToast(`Saved locally (Cloud sync error: ${err.message})`, 'warning');
+        }
+      } else {
+        showToast(`Saved <strong>${normalized.name}</strong> to active catalog!`, 'success');
+      }
+    }
+
+    // Delete a laptop from Firestore
+    async function deleteLaptopFromCloud(laptopId) {
+      if (LAPTOPS_DB.length <= 2) {
+        showToast('Cannot delete when 2 or fewer laptops remain in catalog.', 'warning');
+        return;
+      }
+      const target = getLaptopById(laptopId);
+      LAPTOPS_DB = LAPTOPS_DB.filter(l => l.id !== laptopId);
+      state.selectedIds = state.selectedIds.map((id, idx) =>
+        id === laptopId ? (LAPTOPS_DB[idx % LAPTOPS_DB.length]?.id || LAPTOPS_DB[0].id) : id
+      );
+      renderAll();
+
+      if (db && currentUser) {
+        try {
+          const docRef = doc(db, 'artifacts', state.appId, 'public', 'data', 'laptops', laptopId);
+          await deleteDoc(docRef);
+          showToast(`Removed <strong>${target.name}</strong> from Cloud Firestore.`, 'info');
+        } catch (err) {
+          console.error('Delete error:', err);
+        }
+      }
+    }
+
+    // Save current Head-to-Head Comparison Snapshot to Firestore
+    async function saveComparisonSnapshotToCloud() {
+      const activeLaptops = getActiveLaptops();
+      const title = activeLaptops.map(l => l.name.split('(')[0].trim()).join(' vs ');
+      const snapId = 'snap-' + Date.now();
+      const snapData = {
+        id: snapId,
+        title,
+        viewMode: state.viewMode,
+        selectedIds: activeLaptops.map(l => l.id),
+        persona: state.activePersona,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.uid || 'anonymous'
+      };
+
+      CLOUD_SNAPSHOTS.unshift(snapData);
+      renderCloudSnapshots();
+
+      if (db && currentUser) {
+        try {
+          const docRef = doc(db, 'artifacts', state.appId, 'public', 'data', 'comparison_snapshots', snapId);
+          await setDoc(docRef, snapData);
+          showToast(`Saved comparison snapshot <strong>"${title}"</strong> to Cloud DB!`, 'success');
+        } catch (err) {
+          console.error('Snapshot save error:', err);
+        }
+      } else {
+        showToast(`Saved comparison snapshot <strong>"${title}"</strong>!`, 'success');
+      }
+    }
+
+    function loadCloudSnapshot(snapId) {
+      const snap = CLOUD_SNAPSHOTS.find(s => s.id === snapId);
+      if (!snap) return;
+      state.viewMode = snap.viewMode || 'compare2';
+      if (Array.isArray(snap.selectedIds) && snap.selectedIds.length > 0) {
+        snap.selectedIds.forEach((id, i) => {
+          if (LAPTOPS_DB.some(l => l.id === id)) {
+            state.selectedIds[i] = id;
+          }
+        });
+      }
+      if (snap.persona && PERSONAS[snap.persona]) {
+        state.activePersona = snap.persona;
+        state.customWeights = { ...PERSONAS[snap.persona].weights };
+      }
+      renderAll();
+      showToast(`Loaded Cloud Snapshot: <strong>${snap.title}</strong>`, 'info');
+    }
+
+    async function deleteCloudSnapshot(snapId, event) {
+      if (event) event.stopPropagation();
+      CLOUD_SNAPSHOTS = CLOUD_SNAPSHOTS.filter(s => s.id !== snapId);
+      renderCloudSnapshots();
+      if (db && currentUser) {
+        try {
+          await deleteDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'comparison_snapshots', snapId));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
+    function renderCloudSnapshots() {
+      const container = document.getElementById('cloudSnapshotsContainer');
+      const listEl = document.getElementById('cloudSnapshotsList');
+      if (!container || !listEl) return;
+
+      if (CLOUD_SNAPSHOTS.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+      container.classList.remove('hidden');
+      listEl.innerHTML = CLOUD_SNAPSHOTS.slice(0, 8).map(snap => `
+        <div
+          onclick="loadCloudSnapshot('${snap.id}')"
+          class="px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 cursor-pointer transition flex items-center gap-2"
+        >
+          <i class="fa-solid fa-bolt text-[10px] text-emerald-500"></i>
+          <span>${snap.title}</span>
+          <span class="text-[10px] font-mono opacity-75">(${PERSONAS[snap.persona]?.name.split(' ')[0] || 'Custom'})</span>
+          <button onclick="deleteCloudSnapshot('${snap.id}', event)" class="text-slate-400 hover:text-rose-400 ml-1" title="Delete Snapshot">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    /*************************************************************************
+     * 5. LIVE GEMINI API 25-SPECIFICATION INGESTION ENGINE
+     *************************************************************************/
+    async function fetchWithExponentialBackoff(url, options, maxRetries = 4) {
+      let delay = 1000;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await fetch(url, options);
+          if (response.ok) return await response.json();
+          if (attempt === maxRetries) {
+            const errText = await response.text();
+            throw new Error(`API HTTP ${response.status}: ${errText.slice(0, 140)}`);
+          }
+        } catch (err) {
+          if (attempt === maxRetries) throw err;
+        }
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2;
+      }
+    }
+
+    function setAiProgressUI(visible, pct = 0, message = '') {
+      const box = document.getElementById('aiIngestionProgressBox');
+      const bar = document.getElementById('aiProgressBar');
+      const pctEl = document.getElementById('aiProgressPct');
+      const msgEl = document.getElementById('aiProgressStatusText');
+      const btn = document.getElementById('aiFetchSubmitBtn');
+      const btnText = document.getElementById('aiFetchBtnText');
+
+      if (!box) return;
+      if (!visible) {
+        box.classList.add('hidden');
+        btn.disabled = false;
+        btnText.textContent = 'Fetch 25 Specs via API & Save to DB';
+        return;
+      }
+      box.classList.remove('hidden');
+      bar.style.width = `${pct}%`;
+      pctEl.textContent = `${pct}%`;
+      msgEl.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-cyan-400"></i> ${message}`;
+      btn.disabled = true;
+      btnText.textContent = 'Ingesting via Gemini...';
+    }
+
+    async function ingestLaptopViaGeminiAPI(modelQuery) {
+      const cleanQuery = (modelQuery || '').trim();
+      if (!cleanQuery) return;
+
+      // Check if already in database
+      const existing = LAPTOPS_DB.find(l => l.name.toLowerCase() === cleanQuery.toLowerCase());
+      if (existing) {
+        assignLaptopToSlot(existing.id, state.activeSlotIndex);
+        showToast(`Loaded existing database profile for <strong>${existing.name}</strong>.`, 'info');
+        return;
+      }
+
+      setAiProgressUI(true, 20, `Connecting to Gemini API to analyze "${cleanQuery}"...`);
+
+      // Build strict 25-category JSON schema for Gemini
+      const specItemSchema = {
+        type: "OBJECT",
+        properties: {
+          score: { type: "INTEGER", description: "Objective score from 0 to 100 for this laptop in this category." },
+          text: { type: "STRING", description: "Detailed, specific technical specification string for this category." }
+        },
+        required: ["score", "text"]
+      };
+
+      const specsProperties = {};
+      const requiredSpecKeys = [];
+      SPEC_CATEGORIES.forEach(cat => {
+        specsProperties[cat.id] = specItemSchema;
+        requiredSpecKeys.push(cat.id);
+      });
+
+      const responseSchema = {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING", description: "Full official laptop brand and model name with generation/year." },
+          brand: { type: "STRING", description: "Manufacturer brand name (e.g. ASUS, Apple, Lenovo, Dell, HP, Acer, MSI, Razer)." },
+          releaseYear: { type: "INTEGER" },
+          tagline: { type: "STRING", description: "Concise 6-10 word engineering headline summarizing the laptop." },
+          priceUSD: { type: "INTEGER", description: "Typical street price in USD." },
+          priceINR: { type: "INTEGER", description: "Typical street price in INR (approx USD * 90)." },
+          visualStyle: { type: "STRING", description: "One of: macbook, thinkpad, gaming-sleek, gaming-heavy, framework, xps, ultrabook" },
+          bestFor: { type: "ARRAY", items: { type: "STRING" }, description: "3 short use-case tags." },
+          pros: { type: "ARRAY", items: { type: "STRING" }, description: "3 key technical strengths." },
+          cons: { type: "ARRAY", items: { type: "STRING" }, description: "2 key technical trade-offs or limitations." },
+          specs: {
+            type: "OBJECT",
+            properties: specsProperties,
+            required: requiredSpecKeys
+          }
+        },
+        required: ["name", "brand", "releaseYear", "tagline", "priceUSD", "priceINR", "visualStyle", "bestFor", "pros", "cons", "specs"]
+      };
+
+      const systemPrompt = `You are a Principal Hardware Telemetry Engineer. Given any laptop model query, return a comprehensive, accurate JSON specification profile covering all 25 required laptop specification categories.
+Every single category inside "specs" MUST have:
+1. "score": an objective integer from 0 to 100 (where 95-100 is world-class flagship, 80-94 is strong, 65-79 is average, <65 has notable compromises such as soldered non-upgradeable RAM/SSD or heavy weight).
+2. "text": a rich, factual technical specification string (including exact CPU cores/threads, RAM speed/soldered vs SODIMM, GPU VRAM/TGP, Display nits/Hz/panel, Battery Wh, Weight in kg, cooling fans/vapor chamber, ports list, etc.).`;
+
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [{
+          role: "user",
+          parts: [{ text: `Generate complete 25-category hardware specification and 0-100 telemetry scores for laptop model: "${cleanQuery}"` }]
+        }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: responseSchema
+        }
+      };
+
+      try {
+        setAiProgressUI(true, 55, `Synthesizing 25 hardware, thermal & repairability parameters for "${cleanQuery}"...`);
+        const result = await fetchWithExponentialBackoff(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        setAiProgressUI(true, 85, `Parsing structured telemetry & persisting to Cloud Firestore...`);
+        const rawJsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawJsonText) throw new Error('Empty response from Gemini API');
+
+        const parsed = JSON.parse(rawJsonText);
+        const palette = ['#06b6d4', '#f43f5e', '#8b5cf6', '#10b981', '#f59e0b', '#3b82f6', '#ec4899'];
+        const slugId = (parsed.name || cleanQuery).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString().slice(-4);
+
+        const newLaptop = normalizeLaptopRecord({
+          id: slugId,
+          name: parsed.name || cleanQuery,
+          brand: parsed.brand || cleanQuery.split(' ')[0],
+          releaseYear: parsed.releaseYear || 2024,
+          tagline: parsed.tagline || 'AI-Synthesized 25-Parameter Telemetry Profile',
+          priceUSD: Number(parsed.priceUSD) || 1499,
+          priceINR: Number(parsed.priceINR) || (Number(parsed.priceUSD || 1499) * 90),
+          accentColor: palette[LAPTOPS_DB.length % palette.length],
+          visualStyle: parsed.visualStyle || 'ultrabook',
+          source: 'Gemini AI API',
+          bestFor: parsed.bestFor || ['AI Verified Profile', 'Full 25-Spec Analysis'],
+          pros: parsed.pros || ['Comprehensive 25-point specification coverage'],
+          cons: parsed.cons || ['Subject to regional SKU configuration differences'],
+          specs: parsed.specs
+        });
+
+        await saveLaptopToFirestore(newLaptop);
+        assignLaptopToSlot(newLaptop.id, state.activeSlotIndex);
+        setAiProgressUI(false);
+        document.getElementById('aiLaptopQueryInput').value = '';
+
+      } catch (err) {
+        console.error('Gemini API Ingestion Error:', err);
+        setAiProgressUI(false);
+        showToast(`Gemini API Ingestion encountered an issue (${err.message}). Opening Custom Spec Builder pre-filled for "${cleanQuery}".`, 'warning');
+        openCustomModal(cleanQuery);
+      }
+    }
+
+    function handleAiIngestionSubmit(e) {
+      e.preventDefault();
+      const q = document.getElementById('aiLaptopQueryInput').value;
+      ingestLaptopViaGeminiAPI(q);
+    }
+
+    function prefillAndFetchAi(modelName) {
+      const input = document.getElementById('aiLaptopQueryInput');
+      if (input) {
+        input.value = modelName;
+        ingestLaptopViaGeminiAPI(modelName);
+      }
+    }
+
+    /*************************************************************************
+     * 6. SCORING & TELEMETRY ENGINE (0–100 Scale)
+     *************************************************************************/
+    function getLaptopById(id) {
+      return LAPTOPS_DB.find(l => l.id === id) || LAPTOPS_DB[0];
+    }
+
+    function getActiveLaptops() {
+      const count = state.viewMode === 'single' ? 1 : (state.viewMode === 'compare2' ? 2 : 3);
+      return state.selectedIds.slice(0, count).map(id => getLaptopById(id));
+    }
+
+    // Calculate pillar score (0 - 100) for a laptop
+    function computePillarScores(laptop) {
+      const pillars = {
+        performance: [],
+        display: [],
+        portability: [],
+        modularity: [],
+        ownership: []
+      };
+
+      SPEC_CATEGORIES.forEach(cat => {
+        const score = laptop.specs[cat.id]?.score || 0;
+        if (pillars[cat.pillar]) {
+          pillars[cat.pillar].push(score);
+        }
+      });
+
+      const result = {};
+      Object.keys(pillars).forEach(pKey => {
+        const arr = pillars[pKey];
+        const avg100 = arr.reduce((a, b) => a + b, 0) / (arr.length || 1);
+        result[pKey] = +avg100.toFixed(1);
+      });
+
+      result.sustained = +(((laptop.specs.cooling.score + laptop.specs.efficiency.score + laptop.specs.benchmarks.score) / 3)).toFixed(1);
+      return result;
+    }
+
+    // Calculate overall weighted score (0 - 100) based on current persona weights
+    function computeOverallScore(laptop) {
+      const pScores = computePillarScores(laptop);
+      const w = state.customWeights;
+      const totalWeight = (w.performance + w.display + w.portability + w.modularity + w.ownership) || 100;
+
+      const weightedSum =
+        (pScores.performance * w.performance) +
+        (pScores.display * w.display) +
+        (pScores.portability * w.portability) +
+        (pScores.modularity * w.modularity) +
+        (pScores.ownership * w.ownership);
+
+      return +(weightedSum / totalWeight).toFixed(1);
+    }
+
+    // Count how many of the 25 categories each active laptop wins (or ties for 1st)
+    function computeCategoryWinCounts(laptops) {
+      const counts = {};
+      laptops.forEach(l => counts[l.id] = 0);
+
+      SPEC_CATEGORIES.forEach(cat => {
+        const maxScore = Math.max(...laptops.map(l => l.specs[cat.id].score));
+        laptops.forEach(l => {
+          if (Math.abs(l.specs[cat.id].score - maxScore) < 0.5) {
+            counts[l.id]++;
+          }
+        });
+      });
+      return counts;
+    }
+
+    function formatPrice(laptop) {
+      if (state.currency === 'INR') {
+        return '₹' + Number(laptop.priceINR || 99990).toLocaleString('en-IN');
+      }
+      return '$' + Number(laptop.priceUSD || 1199).toLocaleString('en-US');
+    }
+
+    /*************************************************************************
+     * 7. DYNAMIC SVG LAPTOP STUDIO RENDERING
+     *************************************************************************/
+    function generateLaptopSVG(laptop, overallScore) {
+      const c = laptop.accentColor || '#6366f1';
+      const style = laptop.visualStyle || 'ultrabook';
+      const isMac = style === 'macbook';
+      const isThinkPad = style === 'thinkpad';
+      const isGaming = style.includes('gaming');
+      const isFramework = style === 'framework';
+
+      const cpuShort = (laptop.specs.cpu.text.split('(')[0] || laptop.brand).slice(0, 26);
+      const gpuShort = (laptop.specs.gpu.text.split('(')[0] || '').replace('Integrated ', '').replace('NVIDIA GeForce ', '').slice(0, 24);
+
+      return `
+        <svg viewBox="0 0 320 185" class="w-full h-36 sm:h-40 drop-shadow-md select-none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="screenGrad-${laptop.id}" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="${c}" stop-opacity="0.42" />
+              <stop offset="50%" stop-color="#0f172a" stop-opacity="0.95" />
+              <stop offset="100%" stop-color="${c}" stop-opacity="0.25" />
+            </linearGradient>
+            <linearGradient id="baseGrad-${laptop.id}" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#334155" />
+              <stop offset="50%" stop-color="#64748b" />
+              <stop offset="100%" stop-color="#334155" />
+            </linearGradient>
+          </defs>
+
+          <!-- Ambient Glow Behind Laptop -->
+          <ellipse cx="160" cy="95" rx="108" ry="54" fill="${c}" opacity="0.16" />
+
+          <!-- Laptop Lid / Bezel -->
+          <rect x="50" y="12" width="220" height="134" rx="${isMac ? '10' : '6'}" fill="#1e293b" stroke="${isGaming ? c : '#475569'}" stroke-width="2" />
+
+          <!-- Inner Display Panel -->
+          <rect x="56" y="18" width="208" height="120" rx="3" fill="url(#screenGrad-${laptop.id})" />
+
+          <!-- Camera Notch or Top Sensor -->
+          ${isMac
+            ? `<rect x="142" y="18" width="36" height="7" rx="2" fill="#090d16" />`
+            : `<circle cx="160" cy="15" r="1.8" fill="#38bdf8" />`
+          }
+
+          <!-- Screen Telemetry Wallpaper Graphics -->
+          <g opacity="0.92">
+            <!-- Brand & Source Header inside screen -->
+            <text x="68" y="34" fill="#e2e8f0" font-family="Inter, sans-serif" font-size="8.5" font-weight="800">${laptop.brand.toUpperCase()} • ${laptop.releaseYear}</text>
+            <text x="68" y="46" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="7">${cpuShort}</text>
+            <text x="68" y="56" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="7">${gpuShort}</text>
+
+            <!-- Telemetry Wave / Bars inside laptop screen -->
+            <line x1="68" y1="118" x2="252" y2="118" stroke="${c}" stroke-width="0.8" stroke-opacity="0.4" />
+            <rect x="70" y="92" width="13" height="26" rx="2" fill="${c}" opacity="0.5" />
+            <rect x="88" y="78" width="13" height="40" rx="2" fill="${c}" opacity="0.7" />
+            <rect x="106" y="66" width="13" height="52" rx="2" fill="${c}" opacity="0.85" />
+            <rect x="124" y="58" width="13" height="60" rx="2" fill="${c}" />
+
+            <!-- Score HUD inside laptop screen -->
+            <rect x="158" y="42" width="92" height="56" rx="6" fill="#0f172a" fill-opacity="0.82" stroke="${c}" stroke-width="1.2" stroke-opacity="0.7" />
+            <text x="204" y="58" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="7.5" font-weight="600">PERSONA SCORE</text>
+            <text x="204" y="82" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono, monospace" font-size="21" font-weight="800">${overallScore}</text>
+            <text x="204" y="92" text-anchor="middle" fill="${c}" font-family="JetBrains Mono, monospace" font-size="6.5" font-weight="700">OUT OF 100 PTS</text>
+          </g>
+
+          <!-- Hinge -->
+          <rect x="95" y="145" width="130" height="4" rx="1" fill="#0f172a" />
+
+          <!-- Laptop Base / Keyboard Deck -->
+          <polygon points="32,148 288,148 304,166 16,166" fill="url(#baseGrad-${laptop.id})" stroke="#475569" stroke-width="1" />
+
+          <!-- Keyboard Backlight / Accent Strip -->
+          <polygon points="56,151 264,151 272,158 48,158" fill="#0f172a" stroke="${isGaming ? c : 'none'}" stroke-width="0.9" />
+
+          <!-- ThinkPad Red TrackPoint Nub -->
+          ${isThinkPad ? `<circle cx="160" cy="154" r="2.8" fill="#ef4444" />` : ''}
+
+          <!-- Framework Modular Port Blocks -->
+          ${isFramework ? `
+            <rect x="24" y="160" width="14" height="4" fill="#f59e0b" rx="1" />
+            <rect x="282" y="160" width="14" height="4" fill="#f59e0b" rx="1" />
+          ` : ''}
+
+          <!-- Bottom Base Lip & RGB Underglow -->
+          <rect x="16" y="165" width="288" height="5" rx="2.5" fill="#1e293b" />
+          ${isGaming ? `<rect x="42" y="169" width="236" height="2.5" rx="1.2" fill="${c}" />` : ''}
+
+          <!-- Center Notch Lip -->
+          <rect x="138" y="165" width="44" height="2.5" rx="1" fill="#94a3b8" />
+        </svg>
+      `;
+    }
+
+    /*************************************************************************
+     * 8. RENDER CONTROLS: VIEW MODES, SLOTS, SEARCH & PERSONAS
+     *************************************************************************/
+    function setViewMode(mode) {
+      state.viewMode = mode;
+      const maxSlots = mode === 'single' ? 1 : (mode === 'compare2' ? 2 : 3);
+      if (state.activeSlotIndex >= maxSlots) {
+        state.activeSlotIndex = 0;
+      }
+      renderAll();
+    }
+
+    function setActiveSlot(index) {
+      state.activeSlotIndex = index;
+      renderSlotSelectors();
+      renderQuickChips();
+    }
+
+    function assignLaptopToSlot(laptopId, slotIndex = state.activeSlotIndex) {
+      state.selectedIds[slotIndex] = laptopId;
+      renderAll();
+    }
+
+    function renderModeButtons() {
+      const modes = [
+        { id: 'single', el: document.getElementById('modeSingleBtn') },
+        { id: 'compare2', el: document.getElementById('modeCompare2Btn') },
+        { id: 'compare3', el: document.getElementById('modeCompare3Btn') }
+      ];
+      modes.forEach(m => {
+        if (!m.el) return;
+        if (state.viewMode === m.id) {
+          m.el.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-sm';
+        } else {
+          m.el.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-indigo-500';
+        }
+      });
+    }
+
+    function renderSlotSelectors() {
+      const container = document.getElementById('slotSelectorsContainer');
+      const count = state.viewMode === 'single' ? 1 : (state.viewMode === 'compare2' ? 2 : 3);
+      document.getElementById('activeSlotIndicator').textContent = `Target: Slot #${state.activeSlotIndex + 1}`;
+
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        const isTarget = state.activeSlotIndex === i;
+        const selectedId = state.selectedIds[i];
+        const currentLaptop = getLaptopById(selectedId);
+
+        const optionsHtml = LAPTOPS_DB.map(l => `
+          <option value="${l.id}" ${l.id === selectedId ? 'selected' : ''}>
+            ${l.name} (${formatPrice(l)})
+          </option>
+        `).join('');
+
+        html += `
+          <div
+            onclick="setActiveSlot(${i})"
+            class="p-2.5 rounded-xl border transition cursor-pointer ${
+              isTarget
+                ? 'border-indigo-500 bg-indigo-500/5 ring-2 ring-indigo-500/20'
+                : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/60 hover:border-slate-300 dark:hover:border-slate-700'
+            }"
+          >
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] font-mono font-bold uppercase flex items-center gap-1.5" style="color: ${currentLaptop.accentColor}">
+                <span class="w-2 h-2 rounded-full" style="background-color: ${currentLaptop.accentColor}"></span>
+                Slot #${i + 1} ${isTarget ? '(Active)' : ''}
+              </span>
+              <span class="text-[11px] font-mono font-bold text-indigo-500">${computeOverallScore(currentLaptop)}/100</span>
+            </div>
+            <select
+              onchange="assignLaptopToSlot(this.value, ${i})"
+              onclick="event.stopPropagation(); setActiveSlot(${i});"
+              class="w-full text-xs font-semibold bg-transparent text-slate-800 dark:text-slate-100 focus:outline-none truncate cursor-pointer"
+            >
+              ${optionsHtml}
+            </select>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function renderQuickChips() {
+      const container = document.getElementById('quickChipsContainer');
+      const count = state.viewMode === 'single' ? 1 : (state.viewMode === 'compare2' ? 2 : 3);
+      const activeIds = state.selectedIds.slice(0, count);
+
+      container.innerHTML = LAPTOPS_DB.map(l => {
+        const isSelected = activeIds.includes(l.id);
+        const isAi = l.source && l.source !== 'Seed Flagship';
+        return `
+          <button
+            onclick="assignLaptopToSlot('${l.id}')"
+            class="px-3 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1.5 border ${
+              isSelected
+                ? 'bg-indigo-600/15 border-indigo-500/50 text-indigo-600 dark:text-indigo-300 font-semibold'
+                : 'bg-slate-100 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700/70 text-slate-600 dark:text-slate-300 hover:border-indigo-400'
+            }"
+          >
+            <span class="w-2 h-2 rounded-full" style="background-color: ${l.accentColor}"></span>
+            <span>${l.name}</span>
+            ${isAi ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-purple-500/20 text-purple-400">AI/DB</span>` : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Search Autocomplete with direct Gemini API Trigger
+    function handleModelSearch(query) {
+      const dropdown = document.getElementById('searchDropdown');
+      const clearBtn = document.getElementById('clearSearchBtn');
+      const q = (query || '').trim();
+      const qLower = q.toLowerCase();
+
+      if (!q) {
+        dropdown.classList.add('hidden');
+        clearBtn.classList.add('hidden');
+        return;
+      }
+
+      clearBtn.classList.remove('hidden');
+      const matches = LAPTOPS_DB.filter(l =>
+        l.name.toLowerCase().includes(qLower) ||
+        l.brand.toLowerCase().includes(qLower) ||
+        l.tagline.toLowerCase().includes(qLower) ||
+        l.specs.cpu.text.toLowerCase().includes(qLower) ||
+        l.specs.gpu.text.toLowerCase().includes(qLower)
+      );
+
+      const safeQ = q.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const aiActionRow = `
+        <div
+          onclick="clearModelSearch(); prefillAndFetchAi('${safeQ}')"
+          class="p-3 bg-indigo-500/10 hover:bg-indigo-500/20 cursor-pointer transition flex items-center justify-between gap-3"
+        >
+          <div class="flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </span>
+            <div>
+              <div class="text-xs font-bold text-indigo-600 dark:text-indigo-300">
+                Fetch "${q}" via Live Gemini API & Save to Cloud DB
+              </div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                Auto-generates all 25 specification categories & 0–100 scores
+              </div>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-[11px] font-semibold shrink-0">
+            Ingest Now →
+          </span>
+        </div>
+      `;
+
+      const matchesHtml = matches.map(l => `
+        <div
+          onclick="selectFromSearch('${l.id}')"
+          class="p-3 hover:bg-indigo-500/10 cursor-pointer transition flex items-center justify-between gap-3"
+        >
+          <div>
+            <div class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full" style="background-color:${l.accentColor}"></span>
+              ${l.name}
+            </div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-md">
+              ${l.specs.cpu.text.split('(')[0]} • ${l.specs.gpu.text.split('(')[0]}
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-xs font-mono font-bold text-indigo-500">${computeOverallScore(l)}/100</div>
+            <div class="text-[10px] font-mono text-slate-400">${formatPrice(l)}</div>
+          </div>
+        </div>
+      `).join('');
+
+      dropdown.innerHTML = matchesHtml + aiActionRow;
+      dropdown.classList.remove('hidden');
+    }
+
+    function selectFromSearch(laptopId) {
+      assignLaptopToSlot(laptopId, state.activeSlotIndex);
+      clearModelSearch();
+    }
+
+    function clearModelSearch() {
+      const input = document.getElementById('modelSearchInput');
+      if (input) input.value = '';
+      document.getElementById('searchDropdown')?.classList.add('hidden');
+      document.getElementById('clearSearchBtn')?.classList.add('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+      const input = document.getElementById('modelSearchInput');
+      const dropdown = document.getElementById('searchDropdown');
+      if (input && dropdown && !input.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    /*************************************************************************
+     * 9. PERSONA ENGINE & CUSTOM WEIGHT SLIDERS
+     *************************************************************************/
+    function selectPersona(personaKey) {
+      state.activePersona = personaKey;
+      state.customWeights = { ...PERSONAS[personaKey].weights };
+      renderAll();
+    }
+
+    function toggleWeightSliders() {
+      const panel = document.getElementById('customWeightsPanel');
+      const chevron = document.getElementById('weightToggleChevron');
+      panel.classList.toggle('hidden');
+      chevron.className = panel.classList.contains('hidden')
+        ? 'fa-solid fa-chevron-down text-[10px]'
+        : 'fa-solid fa-chevron-up text-[10px]';
+    }
+
+    function updateCustomWeight(pillar, val) {
+      state.customWeights[pillar] = Number(val);
+      state.activePersona = 'custom';
+      renderAll();
+    }
+
+    function renderPersonaSection() {
+      const container = document.getElementById('personaButtonsContainer');
+      container.innerHTML = Object.values(PERSONAS).map(p => {
+        const isActive = state.activePersona === p.id;
+        return `
+          <button
+            onclick="selectPersona('${p.id}')"
+            class="p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+              isActive
+                ? 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/20'
+                : 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 hover:border-purple-500/40'
+            }"
+          >
+            <div class="flex items-center justify-between w-full mb-1.5">
+              <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs ${
+                isActive ? 'bg-purple-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+              }">
+                <i class="fa-solid ${p.icon}"></i>
+              </span>
+              ${isActive ? '<span class="text-[10px] font-mono font-bold text-purple-500 uppercase">Active</span>' : ''}
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-900 dark:text-white">${p.name}</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">${p.desc}</div>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      const pillarMeta = [
+        { key: 'performance', label: 'Performance & Cooling', icon: 'fa-microchip' },
+        { key: 'display', label: 'Display, Audio & Build', icon: 'fa-desktop' },
+        { key: 'portability', label: 'Battery, Weight & Eff.', icon: 'fa-battery-full' },
+        { key: 'modularity', label: 'Ports, Upgrade & Repair', icon: 'fa-screwdriver-wrench' },
+        { key: 'ownership', label: 'OS, Security & Value', icon: 'fa-tags' }
+      ];
+
+      const totalW = Object.values(state.customWeights).reduce((a, b) => a + b, 0) || 1;
+      document.getElementById('weightSlidersGrid').innerHTML = pillarMeta.map(pm => {
+        const rawVal = state.customWeights[pm.key];
+        const normPct = Math.round((rawVal / totalW) * 100);
+        return `
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between text-xs font-semibold mb-1.5">
+              <span class="flex items-center gap-1.5">
+                <i class="fa-solid ${pm.icon} text-indigo-500"></i>
+                ${pm.label}
+              </span>
+              <span class="font-mono text-indigo-500">${normPct}%</span>
+            </div>
+            <input
+              type="range"
+              min="5"
+              max="60"
+              value="${rawVal}"
+              oninput="updateCustomWeight('${pm.key}', this.value)"
+              class="w-full accent-indigo-600 cursor-pointer"
+            />
+          </div>
+        `;
+      }).join('');
+    }
+
+    /*************************************************************************
+     * 10. RENDER LAPTOP HERO SHOWCASE CARDS (With Cloud Edit/Delete & Pros/Cons)
+     *************************************************************************/
+    function renderHeroCards() {
+      const container = document.getElementById('laptopHeroCardsGrid');
+      const laptops = getActiveLaptops();
+      const scores = laptops.map(l => computeOverallScore(l));
+      const maxOverall = Math.max(...scores);
+      const winCounts = computeCategoryWinCounts(laptops);
+
+      if (laptops.length === 1) {
+        container.className = 'grid grid-cols-1 gap-5';
+      } else if (laptops.length === 2) {
+        container.className = 'grid grid-cols-1 md:grid-cols-2 gap-5';
+      } else {
+        container.className = 'grid grid-cols-1 md:grid-cols-3 gap-5';
+      }
+
+      container.innerHTML = laptops.map((laptop, idx) => {
+        const overall = scores[idx];
+        const isWinner = laptops.length > 1 && Math.abs(overall - maxOverall) < 0.05;
+        const pScores = computePillarScores(laptop);
+
+        return `
+          <div class="relative rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col justify-between ${
+            isWinner
+              ? 'border-indigo-500 dark:border-indigo-500 bg-white dark:bg-slate-900 shadow-xl shadow-indigo-500/10'
+              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm'
+          }">
+            <!-- Top Accent Bar -->
+            <div class="h-1.5 w-full" style="background-color: ${laptop.accentColor}"></div>
+
+            <div class="p-5 space-y-4 flex-1 flex flex-col justify-between">
+              <div>
+                <!-- Header Row: Slot badge + Winner Ribbon + Cloud Actions -->
+                <div class="flex items-center justify-between gap-2 mb-2">
+                  <div class="flex items-center gap-1.5">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase border" style="color:${laptop.accentColor}; border-color:${laptop.accentColor}40; background-color:${laptop.accentColor}15">
+                      Slot #${idx + 1} • ${laptop.brand}
+                    </span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                      ${laptop.source || 'Cloud DB'}
+                    </span>
+                  </div>
+
+                  <div class="flex items-center gap-1">
+                    <button onclick="openEditLaptopModal('${laptop.id}')" class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:text-indigo-500 flex items-center justify-center text-xs text-slate-400 transition" title="Edit Specs in Cloud DB">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button onclick="inspectLaptopJson('${laptop.id}')" class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:text-cyan-400 flex items-center justify-center text-xs text-slate-400 transition" title="Inspect JSON Payload">
+                      <i class="fa-solid fa-code"></i>
+                    </button>
+                    <button onclick="deleteLaptopFromCloud('${laptop.id}')" class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:text-rose-500 flex items-center justify-center text-xs text-slate-400 transition" title="Delete from Cloud DB">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Winner Banner / Category Win Tally -->
+                <div class="flex items-center justify-between gap-2 mb-1.5">
+                  ${isWinner ? `
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                      <i class="fa-solid fa-crown text-amber-500"></i>
+                      Overall Persona Winner (${overall}/100)
+                    </span>
+                  ` : `
+                    <span class="text-xs font-mono font-semibold text-slate-500">
+                      Persona Score: ${overall}/100
+                    </span>
+                  `}
+                  <span class="text-xs font-mono font-bold text-indigo-500">
+                    Wins ${winCounts[laptop.id]} of 25 Categories
+                  </span>
+                </div>
+
+                <!-- Laptop Name & Tagline -->
+                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white leading-snug">
+                  ${laptop.name}
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  ${laptop.tagline}
+                </p>
+
+                <!-- Dynamic SVG Illustration -->
+                <div class="my-3 py-2 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-center relative overflow-hidden">
+                  ${generateLaptopSVG(laptop, overall)}
+                  <div class="absolute bottom-2 right-2.5 px-2.5 py-0.5 rounded bg-slate-900/90 border border-slate-700 text-[11px] font-mono font-bold text-emerald-400">
+                    ${formatPrice(laptop)}
+                  </div>
+                </div>
+
+                <!-- Best For Chips -->
+                <div class="flex flex-wrap gap-1.5 mt-2">
+                  ${(laptop.bestFor || []).map(tag => `
+                    <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      <i class="fa-solid fa-check text-[9px] text-indigo-500 mr-1"></i>${tag}
+                    </span>
+                  `).join('')}
+                </div>
+
+                <!-- Key Pros & Cons Summary -->
+                <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 gap-1.5 text-[11px]">
+                  ${(laptop.pros || []).slice(0, 2).map(pro => `
+                    <div class="text-slate-600 dark:text-slate-300 flex items-start gap-1.5">
+                      <i class="fa-solid fa-circle-plus text-emerald-500 mt-0.5 shrink-0"></i>
+                      <span class="truncate">${pro}</span>
+                    </div>
+                  `).join('')}
+                  ${(laptop.cons || []).slice(0, 1).map(con => `
+                    <div class="text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+                      <i class="fa-solid fa-circle-minus text-rose-500 mt-0.5 shrink-0"></i>
+                      <span class="truncate">${con}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Mini 5-Pillar Score Footer (0-100) -->
+              <div class="pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-5 gap-1.5 text-center">
+                <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Compute</div>
+                  <div class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${pScores.performance}</div>
+                </div>
+                <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Display</div>
+                  <div class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${pScores.display}</div>
+                </div>
+                <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Portable</div>
+                  <div class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${pScores.portability}</div>
+                </div>
+                <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Modular</div>
+                  <div class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${pScores.modularity}</div>
+                </div>
+                <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Value/OS</div>
+                  <div class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${pScores.ownership}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /*************************************************************************
+     * 11. RENDER 6-AXIS SVG RADAR CHART & EXECUTIVE VERDICT
+     *************************************************************************/
+    function renderRadarAndVerdict() {
+      const laptops = getActiveLaptops();
+      const axes = [
+        { key: 'performance', label: 'Compute & GPU' },
+        { key: 'display', label: 'Display & Audio' },
+        { key: 'sustained', label: 'Thermals & Eff.' },
+        { key: 'portability', label: 'Battery & Weight' },
+        { key: 'modularity', label: 'Ports & Repair' },
+        { key: 'ownership', label: 'Value & Security' }
+      ];
+
+      const size = 290;
+      const cx = size / 2;
+      const cy = size / 2;
+      const radius = 96;
+
+      function getPoint(idx, val) {
+        const angle = (Math.PI * 2 * idx) / axes.length - Math.PI / 2;
+        const r = (val / 100) * radius;
+        return {
+          x: +(cx + r * Math.cos(angle)).toFixed(1),
+          y: +(cy + r * Math.sin(angle)).toFixed(1)
+        };
+      }
+
+      let gridPolygons = '';
+      [25, 50, 75, 100].forEach(level => {
+        const pts = axes.map((_, idx) => {
+          const p = getPoint(idx, level);
+          return `${p.x},${p.y}`;
+        }).join(' ');
+        gridPolygons += `<polygon points="${pts}" fill="none" stroke="currentColor" class="text-slate-200 dark:text-slate-800" stroke-width="1" />`;
+      });
+
+      let axisLines = '';
+      axes.forEach((ax, idx) => {
+        const end = getPoint(idx, 100);
+        const lbl = getPoint(idx, 123);
+        axisLines += `
+          <line x1="${cx}" y1="${cy}" x2="${end.x}" y2="${end.y}" stroke="currentColor" class="text-slate-200 dark:text-slate-800" stroke-width="1" />
+          <text x="${lbl.x}" y="${lbl.y}" text-anchor="middle" dominant-baseline="middle" class="fill-slate-600 dark:fill-slate-300 text-[10px] font-semibold">
+            ${ax.label}
+          </text>
+        `;
+      });
+
+      let dataPolygons = '';
+      laptops.forEach(l => {
+        const pScores = computePillarScores(l);
+        const pts = axes.map((ax, idx) => {
+          const p = getPoint(idx, pScores[ax.key]);
+          return `${p.x},${p.y}`;
+        }).join(' ');
+
+        const circles = axes.map((ax, idx) => {
+          const p = getPoint(idx, pScores[ax.key]);
+          return `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${l.accentColor}" />`;
+        }).join('');
+
+        dataPolygons += `
+          <polygon points="${pts}" fill="${l.accentColor}" fill-opacity="0.18" stroke="${l.accentColor}" stroke-width="2.2" />
+          ${circles}
+        `;
+      });
+
+      document.getElementById('radarChartContainer').innerHTML = `
+        <svg viewBox="0 0 ${size} ${size}" class="w-full max-w-[300px] h-auto overflow-visible">
+          ${gridPolygons}
+          ${axisLines}
+          ${dataPolygons}
+        </svg>
+      `;
+
+      document.getElementById('radarLegendContainer').innerHTML = laptops.map(l => `
+        <div class="flex items-center gap-1.5 font-medium">
+          <span class="w-3 h-3 rounded-sm inline-block" style="background-color:${l.accentColor}"></span>
+          <span class="text-slate-700 dark:text-slate-200">${l.name}</span>
+          <span class="font-mono font-bold text-indigo-500">(${computeOverallScore(l)}/100)</span>
+        </div>
+      `).join('');
+
+      const pName = PERSONAS[state.activePersona]?.name || 'Custom Weights';
+      document.getElementById('verdictPersonaBadge').textContent = `Persona: ${pName}`;
+
+      const sorted = [...laptops].sort((a, b) => computeOverallScore(b) - computeOverallScore(a));
+      const top = sorted[0];
+      const topScore = computeOverallScore(top);
+
+      if (laptops.length === 1) {
+        document.getElementById('executiveVerdictBox').innerHTML = `
+          <div class="flex items-start gap-3">
+            <i class="fa-solid fa-circle-check text-indigo-500 text-lg mt-0.5"></i>
+            <div>
+              <strong>Single Deep-Dive Analysis:</strong> Under the <strong>${pName}</strong> weighting profile, the <strong>${top.name}</strong> achieves an overall score of <span class="font-mono font-bold text-indigo-500">${topScore}/100</span>. Switch to <em>2 or 3 Laptops</em> above to benchmark it head-to-head.
+            </div>
+          </div>
+        `;
+      } else {
+        const runnerUp = sorted[1];
+        const diff = (topScore - computeOverallScore(runnerUp)).toFixed(1);
+        const winCounts = computeCategoryWinCounts(laptops);
+        document.getElementById('executiveVerdictBox').innerHTML = `
+          <div class="flex items-start gap-3">
+            <i class="fa-solid fa-award text-amber-500 text-xl mt-0.5"></i>
+            <div>
+              For the <strong>${pName}</strong> persona, <strong>${top.name}</strong> takes 1st place with <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">${topScore}/100 pts</span> (leading <strong>${runnerUp.name}</strong> by <span class="font-mono font-bold">+${diff} pts</span> and winning or tying in <strong>${winCounts[top.id]} of 25</strong> specification categories).
+            </div>
+          </div>
+        `;
+      }
+
+      const keyDomains = [
+        { id: 'cpu', label: 'CPU Compute', icon: 'fa-microchip' },
+        { id: 'gpu', label: 'Graphics (GPU)', icon: 'fa-vr-cardboard' },
+        { id: 'display', label: 'Display Quality', icon: 'fa-desktop' },
+        { id: 'battery', label: 'Battery Life', icon: 'fa-battery-full' },
+        { id: 'cooling', label: 'Thermal Cooling', icon: 'fa-fan' },
+        { id: 'upgradeability', label: 'Upgradeability', icon: 'fa-screwdriver-wrench' },
+        { id: 'repairability', label: 'Repairability', icon: 'fa-toolbox' },
+        { id: 'price', label: 'Value for Money', icon: 'fa-tags' }
+      ];
+
+      document.getElementById('domainChampionsGrid').innerHTML = keyDomains.map(kd => {
+        const bestLaptop = [...laptops].sort((a, b) => b.specs[kd.id].score - a.specs[kd.id].score)[0];
+        const bestScore = bestLaptop.specs[kd.id].score;
+        return `
+          <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+              <span><i class="fa-solid ${kd.icon} mr-1 text-indigo-400"></i>${kd.label}</span>
+              <span class="font-mono font-bold text-slate-700 dark:text-slate-200">${bestScore}/100</span>
+            </div>
+            <div class="text-xs font-bold truncate flex items-center gap-1.5" style="color:${bestLaptop.accentColor}">
+              <span class="w-2 h-2 rounded-full shrink-0" style="background-color:${bestLaptop.accentColor}"></span>
+              <span class="truncate">${bestLaptop.name.replace(/\(.*\)/, '').trim()}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const pillarList = [
+        { key: 'performance', label: 'Performance & Cooling' },
+        { key: 'display', label: 'Display, Audio & Chassis' },
+        { key: 'portability', label: 'Portability & Battery' },
+        { key: 'modularity', label: 'Modularity & Repairability' },
+        { key: 'ownership', label: 'OS, Security & Value' }
+      ];
+
+      document.getElementById('pillarBarsContainer').innerHTML = pillarList.map(pl => {
+        const barsHtml = laptops.map(l => {
+          const val = computePillarScores(l)[pl.key];
+          return `
+            <div class="flex items-center gap-2">
+              <span class="w-24 sm:w-32 text-[11px] truncate text-slate-500 dark:text-slate-400">${l.name.split(' ')[0]} ${l.name.split(' ')[1] || ''}</span>
+              <div class="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div class="h-full rounded-full score-bar-fill" style="width:${val}%; background-color:${l.accentColor}"></div>
+              </div>
+              <span class="w-10 text-right text-[11px] font-mono font-bold">${val}</span>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800/70">
+            <div class="text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">${pl.label}</div>
+            <div class="space-y-1">${barsHtml}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /*************************************************************************
+     * 12. RENDER ALL 25 SPECIFICATION ROWS (0–100 Scale + Category Winners)
+     *************************************************************************/
+    function setCategoryTab(tabId) {
+      state.activeCategoryTab = tabId;
+      renderCategoryTabs();
+      renderSpecTable();
+    }
+
+    function renderCategoryTabs() {
+      const tabs = [
+        { id: 'all', label: 'All 25 Specifications', count: 25, icon: 'fa-layer-group' },
+        { id: 'performance', label: 'Compute & Thermals', count: 6, icon: 'fa-microchip' },
+        { id: 'display', label: 'Display, Audio & Build', count: 6, icon: 'fa-desktop' },
+        { id: 'portability', label: 'Battery & Efficiency', count: 3, icon: 'fa-battery-full' },
+        { id: 'modularity', label: 'Ports, Upgrade & Repair', count: 5, icon: 'fa-screwdriver-wrench' },
+        { id: 'ownership', label: 'OS, Security & Value', count: 5, icon: 'fa-shield-halved' }
+      ];
+
+      document.getElementById('categoryTabsContainer').innerHTML = tabs.map(t => {
+        const active = state.activeCategoryTab === t.id;
+        return `
+          <button
+            onclick="setCategoryTab('${t.id}')"
+            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
+              active
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }"
+          >
+            <i class="fa-solid ${t.icon} text-[11px]"></i>
+            <span>${t.label}</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-mono ${active ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300'}">${t.count}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderSpecTable() {
+      const container = document.getElementById('specMatrixContainer');
+      const laptops = getActiveLaptops();
+      const filterText = (document.getElementById('specFilterInput')?.value || '').trim().toLowerCase();
+      const diffOnly = document.getElementById('diffOnlyCheckbox')?.checked || false;
+
+      const filteredCategories = SPEC_CATEGORIES.filter(cat => {
+        if (state.activeCategoryTab !== 'all' && cat.pillar !== state.activeCategoryTab) {
+          return false;
+        }
+        if (filterText) {
+          const matchesCat = cat.name.toLowerCase().includes(filterText) || cat.subtitle.toLowerCase().includes(filterText);
+          const matchesSpecText = laptops.some(l => l.specs[cat.id].text.toLowerCase().includes(filterText));
+          if (!matchesCat && !matchesSpecText) return false;
+        }
+        if (diffOnly && laptops.length > 1) {
+          const scores = laptops.map(l => l.specs[cat.id].score);
+          const gap = Math.max(...scores) - Math.min(...scores);
+          if (gap < 8) return false;
+        }
+        return true;
+      });
+
+      if (filteredCategories.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-sm text-slate-500">
+            No specification categories match your current filter criteria. Try clearing the search filter or unchecking the gap toggle.
+          </div>
+        `;
+        return;
+      }
+
+      const colClass = laptops.length === 1
+        ? 'grid-cols-1'
+        : (laptops.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3');
+
+      container.innerHTML = filteredCategories.map(cat => {
+        const scores = laptops.map(l => l.specs[cat.id].score);
+        const maxScore = Math.max(...scores);
+        const minScore = Math.min(...scores);
+
+        const cellsHtml = laptops.map(l => {
+          const specObj = l.specs[cat.id];
+          const isBest = laptops.length > 1 && Math.abs(specObj.score - maxScore) < 0.5 && (maxScore - minScore >= 1);
+          const pct = Math.min(100, Math.max(0, Math.round(specObj.score)));
+
+          let scoreBadgeClass = 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200';
+          if (specObj.score >= 90) {
+            scoreBadgeClass = 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
+          } else if (specObj.score >= 75) {
+            scoreBadgeClass = 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30';
+          } else if (specObj.score < 60) {
+            scoreBadgeClass = 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30';
+          }
+
+          return `
+            <div class="p-3.5 rounded-xl border transition ${
+              isBest
+                ? 'border-indigo-500/50 bg-indigo-500/[0.04] dark:bg-indigo-500/[0.07]'
+                : 'border-slate-200/70 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50'
+            }">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:${l.accentColor}"></span>
+                  <span class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">${l.name}</span>
+                  ${isBest ? `
+                    <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 shrink-0">
+                      <i class="fa-solid fa-trophy text-[9px] mr-0.5"></i>Category Winner
+                    </span>
+                  ` : ''}
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-xs font-mono font-bold shrink-0 ${scoreBadgeClass}">
+                  ${specObj.score} / 100
+                </span>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden mb-2.5">
+                <div class="h-full rounded-full score-bar-fill" style="width:${pct}%; background-color:${l.accentColor}"></div>
+              </div>
+
+              <!-- Detailed Specification Text -->
+              <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                ${specObj.text}
+              </p>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="p-4 sm:p-5 hover:bg-slate-50/40 dark:hover:bg-slate-900/40 transition">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div class="flex items-center gap-2.5">
+                <span class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono text-xs font-bold flex items-center justify-center border border-indigo-500/20">
+                  #${cat.num}
+                </span>
+                <div>
+                  <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid ${cat.icon} text-indigo-500 text-xs"></i>
+                    ${cat.name}
+                  </h4>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400">${cat.subtitle}</p>
+                </div>
+              </div>
+              <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                ${cat.pillarLabel}
+              </span>
+            </div>
+
+            <div class="grid ${colClass} gap-3">
+              ${cellsHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /*************************************************************************
+     * 13. CUSTOM / EDIT LAPTOP MODAL & CLOUD DB PERSISTENCE
+     *************************************************************************/
+    function openCustomModal(prefillName = '') {
+      document.getElementById('custEditId').value = '';
+      document.getElementById('customModalTitle').innerHTML = `<i class="fa-solid fa-plus text-indigo-500"></i> Simulate & Save Custom Laptop to Cloud DB`;
+      if (prefillName) {
+        document.getElementById('custName').value = prefillName;
+      }
+      document.getElementById('customLaptopModal').classList.remove('hidden');
+    }
+
+    function openEditLaptopModal(laptopId) {
+      const l = getLaptopById(laptopId);
+      if (!l) return;
+      document.getElementById('custEditId').value = l.id;
+      document.getElementById('customModalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-indigo-500"></i> Edit "${l.name}" in Cloud DB`;
+      document.getElementById('custName').value = l.name;
+      document.getElementById('custPriceUSD').value = l.priceUSD;
+      document.getElementById('custCpuText').value = l.specs.cpu.text;
+      document.getElementById('custCpuScore').value = l.specs.cpu.score;
+      document.getElementById('custRamText').value = l.specs.ram.text;
+      document.getElementById('custRamScore').value = l.specs.ram.score;
+      document.getElementById('custGpuText').value = l.specs.gpu.text;
+      document.getElementById('custGpuScore').value = l.specs.gpu.score;
+      document.getElementById('custDisplayText').value = l.specs.display.text;
+      document.getElementById('custDisplayScore').value = l.specs.display.score;
+      document.getElementById('custBatteryText').value = l.specs.battery.text;
+      document.getElementById('custBatteryScore').value = l.specs.battery.score;
+      document.getElementById('custWeightText').value = l.specs.weight.text;
+      document.getElementById('custRepairScore').value = l.specs.repairability.score;
+      document.getElementById('customLaptopModal').classList.remove('hidden');
+    }
+
+    function closeCustomModal() {
+      document.getElementById('customLaptopModal').classList.add('hidden');
+    }
+
+    async function handleCustomLaptopSubmit(e) {
+      e.preventDefault();
+      const editId = document.getElementById('custEditId').value;
+      const existing = editId ? getLaptopById(editId) : null;
+
+      const name = document.getElementById('custName').value.trim();
+      const priceUSD = Number(document.getElementById('custPriceUSD').value) || 1299;
+      const priceINR = Math.round(priceUSD * 90);
+
+      const cpuScore = Number(document.getElementById('custCpuScore').value) || 85;
+      const ramScore = Number(document.getElementById('custRamScore').value) || 85;
+      const gpuScore = Number(document.getElementById('custGpuScore').value) || 80;
+      const displayScore = Number(document.getElementById('custDisplayScore').value) || 88;
+      const batteryScore = Number(document.getElementById('custBatteryScore').value) || 82;
+      const repairScore = Number(document.getElementById('custRepairScore').value) || 75;
+
+      const avgPerf = (cpuScore + gpuScore + displayScore + batteryScore) / 4;
+      const valueScore = Math.min(99, Math.max(55, Math.round(avgPerf + (1600 - priceUSD) / 90)));
+
+      const newId = editId || ('custom-' + Date.now());
+      const baseSpecs = existing ? { ...existing.specs } : {};
+
+      const customLaptop = {
+        id: newId,
+        name: name,
+        brand: name.split(' ')[0] || 'Custom',
+        releaseYear: existing?.releaseYear || 2025,
+        tagline: existing?.tagline || 'User-Configured Cloud Telemetry Profile',
+        priceUSD,
+        priceINR,
+        accentColor: existing?.accentColor || '#f43f5e',
+        visualStyle: existing?.visualStyle || (gpuScore >= 85 ? 'gaming-sleek' : 'ultrabook'),
+        source: existing?.source === 'Seed Flagship' ? 'Edited Cloud Model' : (existing?.source || 'User Custom DB'),
+        bestFor: existing?.bestFor || ['Custom Configuration', 'Cloud Persisted', 'User Spec Target'],
+        pros: existing?.pros || ['Custom-tuned hardware telemetry profile', 'Synced to Cloud Firestore'],
+        cons: existing?.cons || ['User-defined benchmark parameters'],
+        specs: {
+          ...baseSpecs,
+          cpu: { score: cpuScore, text: document.getElementById('custCpuText').value },
+          ram: { score: ramScore, text: document.getElementById('custRamText').value },
+          storage: baseSpecs.storage || { score: 88, text: '1TB PCIe Gen4x4 NVMe M.2 SSD (User-configurable slot)' },
+          gpu: { score: gpuScore, text: document.getElementById('custGpuText').value },
+          display: { score: displayScore, text: document.getElementById('custDisplayText').value },
+          battery: { score: batteryScore, text: document.getElementById('custBatteryText').value },
+          os: baseSpecs.os || { score: 88, text: 'Windows 11 Pro / Linux Dual-Boot Compatible' },
+          build: baseSpecs.build || { score: 86, text: 'CNC Aluminum / Magnesium hybrid chassis with reinforced hinge' },
+          weight: { score: baseSpecs.weight?.score || 84, text: document.getElementById('custWeightText').value },
+          cooling: { score: Math.round((cpuScore + gpuScore) / 2), text: baseSpecs.cooling?.text || 'Dual fan thermal module with copper heat pipes & dynamic fan curve' },
+          ports: baseSpecs.ports || { score: 87, text: '2× USB-C (Thunderbolt/USB4), 2× USB-A 3.2, HDMI 2.1, 3.5mm Audio jack' },
+          wireless: baseSpecs.wireless || { score: 90, text: 'Wi-Fi 6E / Wi-Fi 7 + Bluetooth 5.3' },
+          keyboard: baseSpecs.keyboard || { score: 85, text: 'Backlit tactile keyboard (1.5mm travel) + precision glass touchpad' },
+          webcam: baseSpecs.webcam || { score: 85, text: '1080p FHD IR Webcam with AI noise-canceling microphone array' },
+          audio: baseSpecs.audio || { score: 82, text: 'Stereo speakers with Dolby Atmos spatial tuning' },
+          upgradeability: { score: repairScore, text: baseSpecs.upgradeability?.text || 'User-accessible M.2 SSD & modular internal access based on repairability rating' },
+          security: baseSpecs.security || { score: 88, text: 'Biometric authentication + TPM 2.0 + webcam privacy protection' },
+          warranty: baseSpecs.warranty || { score: 82, text: '1-Year Standard Onsite Manufacturer Warranty' },
+          software: baseSpecs.software || { score: 85, text: 'Clean OEM driver update utility & standard UEFI BIOS' },
+          price: { score: valueScore, text: `$${priceUSD.toLocaleString()} / ₹${priceINR.toLocaleString('en-IN')} — Computed price-to-performance score` },
+          repairability: { score: repairScore, text: baseSpecs.repairability?.text || 'Standard fastener access to battery, fans, and storage modules' },
+          benchmarks: { score: Math.round(cpuScore * 0.55 + gpuScore * 0.45), text: baseSpecs.benchmarks?.text || 'Composite CPU/GPU sustained workload benchmark score' },
+          color: { score: displayScore, text: baseSpecs.color?.text || '100% sRGB / Wide P3 color gamut calibrated panel' },
+          efficiency: { score: batteryScore, text: baseSpecs.efficiency?.text || 'Balanced performance-per-watt power envelope' },
+          features: baseSpecs.features || { score: 85, text: '100W USB-C PD charging support, multi-display output' }
+        }
+      };
+
+      await saveLaptopToFirestore(customLaptop);
+      assignLaptopToSlot(newId, state.activeSlotIndex);
+      closeCustomModal();
+    }
+
+    /*************************************************************************
+     * 14. BACKEND API, JSON PAYLOAD & FASTAPI REFERENCE INSPECTOR
+     *************************************************************************/
+    let inspectedLaptopId = null;
+
+    function openBackendModal(tab = 'json') {
+      state.backendTab = tab;
+      if (!inspectedLaptopId) {
+        inspectedLaptopId = state.selectedIds[state.activeSlotIndex] || LAPTOPS_DB[0].id;
+      }
+      document.getElementById('backendModal').classList.remove('hidden');
+      renderBackendModalContent();
+    }
+
+    function inspectLaptopJson(laptopId) {
+      inspectedLaptopId = laptopId;
+      openBackendModal('json');
+    }
+
+    function closeBackendModal() {
+      document.getElementById('backendModal').classList.add('hidden');
+    }
+
+    function switchBackendTab(tab) {
+      state.backendTab = tab;
+      renderBackendModalContent();
+    }
+
+    function renderBackendModalContent() {
+      const body = document.getElementById('backendModalBody');
+      const tabs = ['json', 'firestore', 'fastapi'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (!btn) return;
+        btn.className = state.backendTab === t
+          ? 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white'
+          : 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
+      });
+
+      const targetLaptop = getLaptopById(inspectedLaptopId || state.selectedIds[0]);
+
+      if (state.backendTab === 'json') {
+        body.textContent = JSON.stringify(targetLaptop, null, 2);
+      } else if (state.backendTab === 'firestore') {
+        const firestoreSummary = {
+          databaseEngine: "Google Cloud Firestore (Real-Time NoSQL Document Store)",
+          connectionStatus: state.cloudConnected ? "ONLINE (onSnapshot Real-Time Listener Active)" : "LOCAL IN-MEMORY FALLBACK",
+          authenticatedUserUid: state.userId || "anonymous-session",
+          collections: {
+            laptopsCatalogPath: `/artifacts/${state.appId}/public/data/laptops`,
+            totalLaptopDocuments: LAPTOPS_DB.length,
+            comparisonSnapshotsPath: `/artifacts/${state.appId}/public/data/comparison_snapshots`,
+            totalSnapshotDocuments: CLOUD_SNAPSHOTS.length
+          },
+          aiIngestionPipeline: {
+            model: "gemini-3-flash-preview",
+            endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
+            responseMimeType: "application/json",
+            enforcedCategoriesCount: 25,
+            scoringScale: "0 to 100 per category"
+          },
+          activeComparisonSlots: getActiveLaptops().map(l => ({
+            id: l.id,
+            name: l.name,
+            source: l.source,
+            overallPersonaScore: computeOverallScore(l)
+          }))
+        };
+        body.textContent = JSON.stringify(firestoreSummary, null, 2);
+      } else {
+        body.textContent = `# ============================================================================
+# SpecMatrix Pro — Local Python FastAPI + SQLite + Gemini API Backend Server
+# Run locally with: pip install fastapi uvicorn google-genai pydantic
+#                   uvicorn main:app --reload --port 8000
+# ============================================================================
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import sqlite3, json, os
+from google import genai
+
+app = FastAPI(title="SpecMatrix Pro 25-Point Telemetry API", version="2.5.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+DB_PATH = "specmatrix_laptops.db"
+
+def init_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS laptops (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                brand TEXT,
+                price_usd INTEGER,
+                payload_json TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+init_db()
+
+class LaptopIngestRequest(BaseModel):
+    model_query: str
+
+@app.get("/api/v1/laptops")
+def list_laptops():
+    with sqlite3.connect(DB_PATH) as conn:
+        rows = conn.execute("SELECT payload_json FROM laptops ORDER BY created_at DESC").fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+@app.post("/api/v1/laptops/ingest")
+def ingest_laptop_via_gemini(req: LaptopIngestRequest):
+    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+    prompt = f"Return a 25-category JSON specification & 0-100 score profile for laptop: {req.model_query}"
+    response = client.models.generate_content(
+        model="gemini-3-flash-preview",
+        contents=prompt,
+        config={"response_mime_type": "application/json"}
+    )
+    laptop_data = json.loads(response.text)
+    laptop_id = laptop_data.get("id") or req.model_query.lower().replace(" ", "-")
+    laptop_data["id"] = laptop_id
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO laptops (id, name, brand, price_usd, payload_json) VALUES (?, ?, ?, ?, ?)",
+            (laptop_id, laptop_data.get("name"), laptop_data.get("brand"), laptop_data.get("priceUSD", 1299), json.dumps(laptop_data))
+        )
+    return laptop_data`;
+      }
+    }
+
+    function copyBackendCode() {
+      const text = document.getElementById('backendModalBody')?.textContent || '';
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+
+      const btnText = document.getElementById('copyCodeBtnText');
+      if (btnText) {
+        btnText.textContent = 'Copied to Clipboard!';
+        setTimeout(() => { btnText.textContent = 'Copy Code / JSON'; }, 2000);
+      }
+      showToast('Copied content to clipboard!', 'success');
+    }
+
+    /*************************************************************************
+     * 15. THEME, CURRENCY & GLOBAL WINDOW BINDINGS
+     *************************************************************************/
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const isDark = htmlEl.classList.toggle('dark');
+      document.getElementById('themeIcon').className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+
+    function toggleCurrency() {
+      state.currency = state.currency === 'INR' ? 'USD' : 'INR';
+      document.getElementById('currencyLabel').textContent = state.currency === 'INR' ? 'INR (₹)' : 'USD ($)';
+      renderAll();
+    }
+
+    function openPrdModal() {
+      document.getElementById('prdModal').classList.remove('hidden');
+    }
+
+    function closePrdModal() {
+      document.getElementById('prdModal').classList.add('hidden');
+    }
+
+    function renderAll() {
+      renderModeButtons();
+      renderSlotSelectors();
+      renderQuickChips();
+      renderCloudSnapshots();
+      renderPersonaSection();
+      renderHeroCards();
+      renderRadarAndVerdict();
+      renderCategoryTabs();
+      renderSpecTable();
+    }
+
+    // Expose interactive handlers to global window scope for HTML inline attributes
+    Object.assign(window, {
+      setViewMode,
+      setActiveSlot,
+      assignLaptopToSlot,
+      handleModelSearch,
+      selectFromSearch,
+      clearModelSearch,
+      selectPersona,
+      toggleWeightSliders,
+      updateCustomWeight,
+      setCategoryTab,
+      renderSpecTable,
+      openCustomModal,
+      openEditLaptopModal,
+      closeCustomModal,
+      handleCustomLaptopSubmit,
+      openPrdModal,
+      closePrdModal,
+      openBackendModal,
+      closeBackendModal,
+      switchBackendTab,
+      inspectLaptopJson,
+      copyBackendCode,
+      toggleTheme,
+      toggleCurrency,
+      handleAiIngestionSubmit,
+      prefillAndFetchAi,
+      deleteLaptopFromCloud,
+      saveComparisonSnapshotToCloud,
+      loadCloudSnapshot,
+      deleteCloudSnapshot
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAll();
+      initCloudDatabase();
+    });
+  </script>
+</body>
+</html>
